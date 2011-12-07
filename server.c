@@ -13,6 +13,8 @@
 #include "constants.h"
 #include "server.h"
 
+#define problem(...)       fprintf(stderr, __VA_ARGS__)
+
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_ip *server_list;
 int num_servers;
@@ -23,15 +25,6 @@ queue *backupQueue;
 
 #include "rpc.c"
 
-void get_my_ip(char *buffer) {
-  struct hostent *h;
-  char name[INET_ADDRSTRLEN];
-  int i;
-  gethostname(name, INET_ADDRSTRLEN);
-  h = gethostbyname(name);
-  inet_ntop(AF_INET, h->h_addr_list[0], buffer, INET_ADDRSTRLEN);
-  strcpy(my_ip, buffer);
-}
 
 void print_server_list() {
   int i;
@@ -46,8 +39,10 @@ int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   my_port = atoi(argv[1]);
   if(argc < 3) {
+
     server_list = malloc(sizeof(host_ip));
     num_servers = 1;
+
     get_my_ip(server_list[0].ip);
     server_list[0].port = my_port;
     print_server_list();
@@ -65,6 +60,20 @@ int main(int argc, char **argv) {
   while(1) { 
     sleep(1000);
   } 
+}
+
+void get_my_ip(char *buffer) {
+  struct hostent *h;
+  char name[BUFFER_SIZE];
+  int i;
+  gethostname(name, BUFFER_SIZE);
+  h = gethostbyname(name);
+  if(h && h->h_addr_list[0]) {
+    inet_ntop(AF_INET, h->h_addr_list[0], buffer, INET_ADDRSTRLEN);
+  } else {
+    problem("gethostbyname did not provide an address for %s \n", name);
+  }
+  strcpy(my_ip, buffer);
 }
 
 
