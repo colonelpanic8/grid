@@ -7,6 +7,10 @@
 #define BUFFER_SIZE 256
 #define MAX_ARGUMENTS 10
 #define MAX_ARGUMENT_LEN 20
+
+#define TRANSMISSION_ERROR (-5)
+#define RECEIVER_ERROR (-6)
+
 #define OKAY 0
 #define FAILURE -1 
 
