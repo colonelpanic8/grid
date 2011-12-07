@@ -25,19 +25,6 @@ queue *backupQueue;
 
 #include "rpc.c"
 
-void get_my_ip(char *buffer) {
-  struct hostent *h;
-  char name[BUFFER_SIZE];
-  int i;
-  gethostname(name, BUFFER_SIZE);
-  h = gethostbyname(name);
-  if(h && h->h_addr_list[0]) {
-    inet_ntop(AF_INET, h->h_addr_list[0], buffer, INET_ADDRSTRLEN);
-  } else {
-    problem("gethostbyname did not provide an address for %s \n", name);
-  }
-  strcpy(my_ip, buffer);
-}
 
 void print_server_list() {
   int i;
@@ -73,6 +60,20 @@ int main(int argc, char **argv) {
   while(1) { 
     sleep(1000);
   } 
+}
+
+void get_my_ip(char *buffer) {
+  struct hostent *h;
+  char name[BUFFER_SIZE];
+  int i;
+  gethostname(name, BUFFER_SIZE);
+  h = gethostbyname(name);
+  if(h && h->h_addr_list[0]) {
+    inet_ntop(AF_INET, h->h_addr_list[0], buffer, INET_ADDRSTRLEN);
+  } else {
+    problem("gethostbyname did not provide an address for %s \n", name);
+  }
+  strcpy(my_ip, buffer);
 }
 
 
