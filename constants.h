@@ -1,3 +1,4 @@
+#define BAR "------------------------------------------------------------\n"
 #define RPC_STR_LEN 1
 #define MAXIMUM_NODES 100
 #define NUM_REPLICAS 1

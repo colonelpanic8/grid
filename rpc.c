@@ -1,34 +1,51 @@
-void remove_dependency(job *current, int jobid) {
-  int i = 0;
-  while (i < current->number_inputs) {
-    if (jobid == current->dependent_on[i]) {
-      current->dependent_on[i] = 0;
-      break;
-    }
-    i++;
+void handle_rpc(int connection) {
+  char rpc[RPC_STR_LEN+1];
+  char host[INET_ADDRSTRLEN], temp[INET_ADDRSTRLEN];
+  get_ip(connection, host);
+  recv_string(connection, rpc, RPC_STR_LEN);
+  printf(BAR);
+  printf("RPC %s from %s\n", rpc, host);
+  switch(atoi(rpc)) {
+  case 0:
+    rpc_send_servers(connection);
+    break;
+  case 1:
+    rpc_serve_job(connection);
+    break;
+  case 2:
+    rpc_inform_of_completion(connection);
+    break;
+  case 3:
+    rpc_receive_update(connection);
+    break;
+  case 4:
+    rpc_receive_job_copy(connection);
+    break;
+  default:
+    break;
   }
+  close(connection);
+  print_server_list();
 }
 
-void add_to_queue(job *addJob, queue *Q) {
-  node_j *n; 
-  n = (node_j *)malloc(sizeof(node_j));
-  n->obj = addJob;
-  n->next = Q->head;
-  Q->head = n;
-}
-
-void add_job(job *addJob) {
-  replicate(addJob);
-  add_to_queue(addJob, activeQueue); 
-}
 
 void rpc_send_servers(int connection) {
-  char buffer[3];
-  rpc_receive_identity(connection);
-  send(connection, (void*)server_list, MAXIMUM_NODES*sizeof(host_ip), 0);
+  send(connection, &num_servers, sizeof(int), 0);
+  send(connection, (void*)server_list, num_servers*sizeof(host_ip), 0);
 }
 
 // Learns of new connection and adds to list of current servers. 
+
+void rpc_receive_update(int connection){
+  host_ip *name;
+  char buffer[9], ip[INET_ADDRSTRLEN];
+  int num_servers_temp;
+  recv(connection, &num_servers, sizeof(int), 0);
+  recv(connection, (void*)server_list, num_servers*sizeof(host_ip), 0);
+}
+
+int verify_update(host_ip *new, int nsize, host_ip* old, int osize) {
+}
 
 void rpc_receive_identity(int connection){
   host_ip *name;
@@ -36,7 +53,6 @@ void rpc_receive_identity(int connection){
   int i = 0;
   get_ip(connection, ip);
   recv_string(connection, buffer, 8);
-  // Moves through the server list until an empty cell of the array is found. 
   while( server_list[i].port != 0) { 
     if(!strcmp(server_list[i].ip, buffer))
       return;
@@ -46,6 +62,7 @@ void rpc_receive_identity(int connection){
   name->port = atoi(buffer);
   strcpy(name->ip,ip);
 }
+
 
 void rpc_serve_job(int connection) {
 }
@@ -64,17 +81,13 @@ void rpc_inform_of_completion(int connection) {
 void failure_notify(host_ip *fail) {
   int connection = 0;
   int i;
-  for(i = 0; i < MAXIMUM_NODES; i++) {
-    if(!server_list[i].port) {
-      break;
-    }
+  for(i = 0; i < num_servers; i++) {  
     if(fail != &server_list[i]) {
-    bulletin_make_connection_with(server_list[i].ip, server_list[i].port, &connection);
+      bulletin_make_connection_with(server_list[i].ip, server_list[i].port, &connection);
     
     }
   }
 }
-
 
 // If a job is complete then we need to update the queue to make jobs that depended on that job available.
 
@@ -139,4 +152,28 @@ void check_avail(job *current) {
     i++;
   }
   if (flag == 0) current->inputs_available = 1;
+}
+
+void remove_dependency(job *current, int jobid) {
+  int i = 0;
+  while (i < current->number_inputs) {
+    if (jobid == current->dependent_on[i]) {
+      current->dependent_on[i] = 0;
+      break;
+    }
+    i++;
+  }
+}
+
+void add_to_queue(job *addJob, queue *Q) {
+  node_j *n; 
+  n = (node_j *)malloc(sizeof(node_j));
+  n->obj = addJob;
+  n->next = Q->head;
+  Q->head = n;
+}
+
+void add_job(job *addJob) {
+  replicate(addJob);
+  add_to_queue(addJob, activeQueue); 
 }
