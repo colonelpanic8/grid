@@ -1,0 +1,24 @@
+TODO:
+All failure code...
+Serve Job RPC...
+Request Job code...
+Recieve Copy RPC...
+
+
+
+Marcus:
+- MUTEX everything - that means:
+  	-server_list, definitely for writes, maybe for reads (probably not)
+		      writes happen in:
+		      	     rpc_receive_update
+			     get_servers (although) it doesn't really make sense to lock at that point
+
+	-Perhaps other things
+
+
+Micheal:
+-runner code
+	-Make a new .c file runner .c
+	-add an entry in the make file
+	-make sure to add a dependency on the bulletin.o code
+	-make sure to import runner.h in server.c
