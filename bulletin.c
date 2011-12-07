@@ -197,7 +197,7 @@ void get_ip(int connection, char *buffer) {
     struct sockaddr_in their_address;
     socklen_t length;
     int err;
-    len = sizeof their_address;
+    length = sizeof their_address;
     memset(&their_address, 0, sizeof(struct sockaddr_in));
     err = getpeername(connection ,(struct sockaddr *)&their_address, &length);
     if(err < 0) {
