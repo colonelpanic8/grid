@@ -47,6 +47,7 @@ int main(int argc, char **argv) {
     num_servers = get_servers(argv[2], atoi(argv[3]), 1, &server_list);
     server_list[num_servers].port = my_port;
     get_my_ip(server_list[num_servers].ip);
+    printf("hmm\n");
     num_servers++;
     listener_set_up();
     print_server_list();
@@ -69,6 +70,7 @@ int get_servers(char *hostname, int port, int add_slots, host_ip **dest) {
   err = SEND_SERVERS;
   safe_send(connection, &err, sizeof(int));
   safe_recv(connection, &n_servers, sizeof(int));
+
   *dest = malloc((n_servers+add_slots)*sizeof(host_ip));
   memset(*dest, 0, (n_servers+add_slots)*sizeof(host_ip));
   safe_recv(connection, *dest, n_servers*sizeof(host_ip));
