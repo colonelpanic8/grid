@@ -34,6 +34,8 @@
 #include <string.h>
 #include <netdb.h>
 #include <errno.h>
+#include "constants.h"
+#include "bulletin.h"
 
 #define TCP_PROTOCOL 6
 
@@ -45,6 +47,8 @@
 #define BULLETIN_CONNECT_ERROR         (-3)
 #define BULLETIN_TALK_ERROR            (-4)
 
+#define TRANSMISSION_ERROR (-5)
+#define RECEIVER_ERROR (-6)
 //
 // recv_string
 //
@@ -188,11 +192,87 @@ void get_ip(int connection, char *buffer) {
     int err;
     length = sizeof their_address;
     memset(&their_address, 0, sizeof(struct sockaddr_in));
-    err = getpeername(connection ,(struct sockaddr *)&their_address, &length);
+    err = getpeername(connection, (struct sockaddr *)&their_address, &length);
     if(err < 0) {
       fprintf(stderr, "get peer name failed %d\n", errno);
       exit(-1);
     }
     if(!inet_ntop(AF_INET, &(their_address.sin_addr), buffer, INET_ADDRSTRLEN))
       fprintf(stderr, "inet_ntop failed %d\n", errno);
+}
+
+int safe_send(int connection, void *data, size_t length) {
+  char *bits;
+  size_t transmitted;
+  int err;
+  bits = data;
+  err = 0;
+  
+  transmitted = htonl(length);
+  err = send(connection, &transmitted, sizeof(transmitted), 0);
+  errno = 0;
+  if(err < sizeof(transmitted)) {    
+    problem("Error sending size of transmission.  Only %d bytes sent.  errno: %d\n"
+	    , err, errno);
+    return TRANSMISSION_ERROR;
+  }
+  
+  err = 0;
+  recv(connection, &err, sizeof(err), 0);
+  if(!err) {
+    problem("Error in communication.  receiver was not ready.\n");
+    return RECEIVER_ERROR;
+  }
+    
+  
+  err = 0;
+  transmitted = 0;
+  while(transmitted < length) {
+    err = send(connection, (void *)(data+transmitted), (length-transmitted), 0);
+    if(err < 0) {
+      problem("Error transmitting data.  Only %lu bytes sent. errno: %d\n", transmitted, errno);
+      return TRANSMISSION_ERROR;
+    }
+    transmitted += err;
+  }
+  return transmitted;
+}
+
+int safe_recv(int connection, void *data, size_t max) {
+  char *bits;
+  size_t received;
+  uint32_t err;
+  bits = data;
+  err = 0;
+  received = 0;
+
+  err = recv(connection, &received, sizeof(received), 0);
+  received = ntohl(received);
+  if(err < sizeof(received)) {    
+    problem("Error receiving size of transmission.  Only %d bytes received.  errno: %d\n"
+	    , err, errno);
+    return TRANSMISSION_ERROR;
+  }
+  
+  if(received > max) {
+    problem("Size of data to be sent was to too large. max: %lu, recv: %lu\n", max, received);
+    err = 0;
+    send(connection, &err, sizeof(err), 0);
+    return RECEIVER_ERROR;
+  }
+  
+  err = 1;
+  send(connection, &err, sizeof(err), 0);
+  max = received;
+  received = 0;
+
+  while(received < max) {
+    err = recv(connection, (void *)(data + received), (max-received), 0);
+    if(err < 0) {
+      problem("Error received data.  Only %lu bytes received. errno: %d\n", received, errno);
+      return TRANSMISSION_ERROR;
+    }
+    received += err;
+  }
+  return received;
 }

@@ -1,3 +1,4 @@
+#define problem(...)       fprintf(stderr, __VA_ARGS__)
 #define BAR "------------------------------------------------------------\n"
 #define RPC_STR_LEN 1
 #define MAXIMUM_NODES 100

@@ -30,8 +30,8 @@ void handle_rpc(int connection) {
 }
 
 void rpc_send_servers(int connection) {
-  send(connection, &num_servers, sizeof(int), 0);
-  send(connection, (void*)server_list, num_servers*sizeof(host_ip), 0);
+  safe_send(connection, &num_servers, sizeof(int));
+  safe_send(connection, (void*)server_list, num_servers*sizeof(host_ip));
 }
 
 // Learns of new connection and adds to list of current servers. 

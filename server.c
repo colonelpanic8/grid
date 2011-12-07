@@ -13,8 +13,6 @@
 #include "constants.h"
 #include "server.h"
 
-#define problem(...)       fprintf(stderr, __VA_ARGS__)
-
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_ip *server_list;
 int num_servers;
@@ -24,7 +22,6 @@ queue *activeQueue;
 queue *backupQueue;
 
 #include "rpc.c"
-
 
 void print_server_list() {
   int i;
@@ -84,10 +81,10 @@ int get_servers(char *hostname, int port, int add_slots, host_ip **dest) {
   int n_servers;
   bulletin_make_connection_with(hostname, port, &connection);
   send_string(connection, "0");
-  recv(connection, &n_servers, sizeof(int), 0);
+  safe_recv(connection, &n_servers, sizeof(int));
   *dest = malloc((n_servers+add_slots)*sizeof(host_ip));
   memset(*dest, 0, (n_servers+add_slots)*sizeof(host_ip));
-  recv(connection, *dest, n_servers*sizeof(host_ip), 0);
+  safe_recv(connection, *dest, n_servers*sizeof(host_ip));
   close(connection);
   return n_servers;
 }
