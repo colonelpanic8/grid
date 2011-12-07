@@ -35,6 +35,7 @@ void print_server_list() {
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   my_port = atoi(argv[1]);
+  listener_set_up();
   if(argc < 3) {
 
     server_list = malloc(sizeof(host_ip));
@@ -47,9 +48,8 @@ int main(int argc, char **argv) {
     num_servers = get_servers(argv[2], atoi(argv[3]), 1, &server_list);
     server_list[num_servers].port = my_port;
     get_my_ip(server_list[num_servers].ip);
-    printf("hmm\n");
+    strcpy(my_ip, server_list[num_servers].ip);
     num_servers++;
-    listener_set_up();
     print_server_list();
     distribute_update();
   }
@@ -86,7 +86,10 @@ void send_update(int connection) {
   safe_send(connection, (void*)server_list, num_servers*sizeof(host_ip));
   safe_recv(connection, &err, sizeof(int));
   if(err) {
-  }  
+    //handle conflicts somehow here
+    return;
+  }
+  
 }
 
 void distribute_update() {

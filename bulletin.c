@@ -219,7 +219,7 @@ int safe_send(int connection, void *data, size_t length) {
   err = FAILURE;
   recv(connection, &err, sizeof(err), 0);
   if(err) {
-    problem("Error in communication.  receiver was not ready.\n");
+    problem("Error in communication.  receiver was not ready. err was: %d\n", err);
     return RECEIVER_ERROR;
   }
     

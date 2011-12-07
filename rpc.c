@@ -47,6 +47,9 @@ void rpc_receive_update(int connection){
   } else {
     err = OKAY;
     safe_send(connection, &err, sizeof(int));
+    num_servers = n_servers;
+    free(server_list);
+    server_list = new;
   }
 }
 
