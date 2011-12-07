@@ -196,8 +196,15 @@ void bulletin_send_post(int bulletin_socket) {
 void get_ip(int connection, char *buffer) {
     struct sockaddr_in their_address;
     socklen_t len;
-    getpeername(connection,(struct sockaddr *)&their_address, &len);
-    inet_ntop(AF_INET, &(their_address.sin_addr), buffer, INET_ADDRSTRLEN);
+    int err;
+    memset(&their_address, 0, sizeof(struct sockaddr_in));
+    err = getpeername(connection ,(struct sockaddr *)&their_address, &len);
+    if(err < 0) {
+      fprintf(stderr, "get peer name failed %d\n", errno);
+      exit(-1);
+    }
+    if(!inet_ntop(AF_INET, &(their_address.sin_addr.s_addr), buffer, INET_ADDRSTRLEN))
+      fprintf(stderr, "inet_ntop failed %d\n", errno);
 }
 
 void bulletin_recv_post(int bulletin_socket) {

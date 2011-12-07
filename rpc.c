@@ -22,17 +22,35 @@ void add_job(job *addJob) {
   add_to_queue(addJob, activeQueue); 
 }
 
+void rpc_send_servers(int connection) {
+  char buffer[3];
+  rpc_receive_identity(connection);
+  send(connection, (void*)server_list, MAXIMUM_NODES*sizeof(host_ip), 0);
+}
+
+// Learns of new connection and adds to list of current servers. 
+
+void rpc_receive_identity(int connection){
+  host_ip *name;
+  char buffer[9], ip[INET_ADDRSTRLEN];
+  int i = 0;
+  get_ip(connection, ip);
+  recv_string(connection, buffer, 8);
+  // Moves through the server list until an empty cell of the array is found. 
+  while( server_list[i].port != 0) { 
+    if(!strcmp(server_list[i].ip, buffer))
+      return;
+    i++;
+  }
+  name = &server_list[i]; 
+  name->port = atoi(buffer);
+  strcpy(name->ip,ip);
+}
+
 void rpc_serve_job(int connection) {
 }
 
 void rpc_receive_job_copy(int connection){
-}
-
-
-void rpc_send_servers(int connection) {
-  send(connection, (void*)server_list, MAXIMUM_NODES*sizeof(host_ip), 0);
-  rpc_receive_identity(connection);
-  print_server_list();
 }
 
 // A runner on another server requests a job from this server.
@@ -41,25 +59,6 @@ void rpc_request_job(int connection) {
 }
 
 void rpc_inform_of_completion(int connection) {
-}
-
-// Learns of new connection and adds to list of current servers. 
-
-void rpc_receive_identity(int connection){
-  host_ip *name;
-  char buffer[9], ip[INET_ADDRSTRLEN];
-  int i;
-  get_ip(connection, ip);
-  recv_string(connection, buffer, 8);
-  // Moves through the server list until an empty cell of the array is found. 
-  while(server_list[i].port != 0) { 
-    if(!strcmp(server_list[i].ip, buffer))
-      return;
-    i++;
-  }
-  name = &server_list[i]; 
-  name->port =  atoi(buffer);
-  strcpy(name->ip,ip);
 }
 
 void failure_notify(host_ip *fail) {

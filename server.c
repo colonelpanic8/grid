@@ -13,13 +13,39 @@
 #include "constants.h"
 #include "server.h"
 
+#define BAR "------------------------------------------------------------\n"
+
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_ip server_list[MAXIMUM_NODES];
+int num_servers;
 int my_port;
+char my_ip[INET_ADDRSTRLEN];
 queue *activeQueue;
 queue *backupQueue;
 
 #include "rpc.c"
+
+
+void get_my_ip(char *buffer) {
+  int status;
+  struct addrinfo hints;
+  struct addrinfo *servinfo;  // will point to the results
+  socklen_t len;
+  struct sockaddr_in *addr;
+  struct hostent *h;
+  char name[INET_ADDRSTRLEN];
+  int i;
+
+  memset(&hints, 0, sizeof(hints)); // make sure the struct is empty
+  hints.ai_family = AF_UNSPEC;     // don't care IPv4 or IPv6
+  hints.ai_socktype = SOCK_STREAM; // TCP stream sockets
+  hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
+
+  gethostname(name, INET_ADDRSTRLEN);
+  h = gethostbyname(name);
+  inet_ntop(AF_INET, h->h_addr_list[0], buffer, INET_ADDRSTRLEN);
+  freeaddrinfo(servinfo); // free the linked-list
+}
 
 void print_server_list() {
   int i;
@@ -29,17 +55,18 @@ void print_server_list() {
   }
 }
 
-
 int main(int argc, char **argv) {
+  char name[INET_ADDRSTRLEN];
+  my_port = atoi(argv[1]);
   if(argc < 3) {
     memset(server_list, 0, MAXIMUM_NODES*sizeof(host_ip));
-    /* FIX  add yourself to server list */ 
+    get_my_ip(server_list[0].ip);
+    server_list[0].port = my_port;
+    print_server_list();
   } else {
     get_servers(argv[2], atoi(argv[3]));
   }
 // initialize queue 
-  my_port = atoi(argv[1]);
-  printf("spawning thread\n");
   listener_set_up();
   while(1) { 
     sleep(1000);
@@ -86,19 +113,22 @@ void get_servers(char *hostname, int port) {
   int connection = 0;
   bulletin_make_connection_with(hostname, port, &connection);
   send_string(connection, "0");
-
+  send_identity_2(connection);
   recv(connection, server_list, MAXIMUM_NODES*sizeof(host_ip), 0);
-  send_identity(connection);
+  print_server_list();
   close(connection);
-  
   distribute_identity();
+  print_server_list();
 }
 
-
 void send_identity(int connection) {
+  send_string(connection, "3");
+  send_identity_2(connection);
+}
+
+void send_identity_2(int connection) {
   char buffer[8];
   sprintf(buffer, "%d", my_port);
-  send_string(connection, "3");
   send_string(connection, buffer);
 }
 
@@ -126,22 +156,24 @@ void listen_for_connection(int *listener) {
   int connection, connect_result;
   pthread_t thread;
   connect_result = -1;
-  printf("listening\n");
   do {
     connect_result = bulletin_wait_for_connection(*listener, &connection);
   } while(connect_result < 0);
   pthread_create(&thread, NULL, (void *(*)(void *))
 		listen_for_connection, listener);
-  printf("handling rpc\n");
   handle_rpc(connection);
-  printf("closing connection\n");
   close(connection);
 }
 
 
 void handle_rpc(int connection) {
   char rpc[RPC_STR_LEN+1];
+  char host[INET_ADDRSTRLEN], temp[INET_ADDRSTRLEN];
+  get_ip(connection, host);
   recv_string(connection, rpc, RPC_STR_LEN);
+  get_ip(connection, temp);
+  printf(BAR);
+  printf("before: %s, after, %s\n", host, temp);
   switch(atoi(rpc)) {
   case 0:
     rpc_send_servers(connection);
@@ -161,4 +193,6 @@ void handle_rpc(int connection) {
   default:
     break;
   }
+  printf("handled: %s\n", rpc);
+  print_server_list();
 }

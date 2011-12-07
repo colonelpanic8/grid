@@ -21,6 +21,8 @@ typedef struct _queue{
 } queue;
     
 void send_identity(int connection);
+void get_my_ip(char *buffer);
+void send_identity_2(int connection);
 void get_servers(char *hostname, int port);
 void listen_for_connection(int *listener);
 void handle_rpc(int connection);
