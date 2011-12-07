@@ -26,6 +26,7 @@ void handle_rpc(int connection) {
   }
   close(connection);
   print_server_list();
+  printf(BAR);
 }
 
 
