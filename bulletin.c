@@ -195,10 +195,10 @@ void bulletin_send_post(int bulletin_socket) {
 
 void get_ip(int connection, char *buffer) {
     struct sockaddr_in their_address;
-    socklen_t len;
+    socklen_t length;
     int err;
     memset(&their_address, 0, sizeof(struct sockaddr_in));
-    err = getpeername(connection ,(struct sockaddr *)&their_address, &len);
+    err = getpeername(connection ,(struct sockaddr *)&their_address, &length);
     if(err < 0) {
       fprintf(stderr, "get peer name failed %d\n", errno);
       exit(-1);
