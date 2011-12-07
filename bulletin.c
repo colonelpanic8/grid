@@ -47,8 +47,6 @@
 #define BULLETIN_CONNECT_ERROR         (-3)
 #define BULLETIN_TALK_ERROR            (-4)
 
-#define TRANSMISSION_ERROR (-5)
-#define RECEIVER_ERROR (-6)
 //
 // recv_string
 //
