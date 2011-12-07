@@ -182,17 +182,6 @@ void bulletin_exit(int errcode) {
   exit(errcode);
 }
 
-void bulletin_send_post(int bulletin_socket) {
-  char buffer[256];
-  // repeatedly post lines typed by the user
-  do {
-    // read a string as a line from the console
-    fgets(buffer, 256, stdin);
-    // send that string on the socket to the server
-    send_string(bulletin_socket,buffer);
-  } while (strcmp(buffer,BULLETIN_TERMINATE));
-}
-
 void get_ip(int connection, char *buffer) {
     struct sockaddr_in their_address;
     socklen_t length;
@@ -206,15 +195,4 @@ void get_ip(int connection, char *buffer) {
     }
     if(!inet_ntop(AF_INET, &(their_address.sin_addr), buffer, INET_ADDRSTRLEN))
       fprintf(stderr, "inet_ntop failed %d\n", errno);
-}
-
-void bulletin_recv_post(int bulletin_socket) {
-  char buffer[256];
-  int length;
-  // repeatedly post lines sent by the client
-  do {
-    // receive a string from this client's connection socket
-    length = recv_string(bulletin_socket,buffer,255);
-    printf("Client says \"%s\".\n",buffer);
-  } while (length >= 0 && strcmp(buffer,BULLETIN_TERMINATE)); 
 }

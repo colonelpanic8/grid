@@ -48,7 +48,6 @@ int main(int argc, char **argv) {
     print_server_list();
   } else {
     num_servers = get_servers(argv[2], atoi(argv[3]), 1, &server_list);
-    printf("%d\n", num_servers);
     server_list[num_servers].port = my_port;
     get_my_ip(server_list[num_servers].ip);
     num_servers++;

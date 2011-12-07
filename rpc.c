@@ -5,6 +5,7 @@ void handle_rpc(int connection) {
   recv_string(connection, rpc, RPC_STR_LEN);
   printf(BAR);
   printf("RPC %s from %s\n", rpc, host);
+  printf(BAR);
   switch(atoi(rpc)) {
   case 0:
     rpc_send_servers(connection);
@@ -26,9 +27,7 @@ void handle_rpc(int connection) {
   }
   close(connection);
   print_server_list();
-  printf(BAR);
 }
-
 
 void rpc_send_servers(int connection) {
   send(connection, &num_servers, sizeof(int), 0);
@@ -46,6 +45,7 @@ void rpc_receive_update(int connection){
 }
 
 int verify_update(host_ip *new, int nsize, host_ip* old, int osize) {
+  
 }
 
 void rpc_receive_identity(int connection){
