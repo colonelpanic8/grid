@@ -48,39 +48,26 @@ int main(int argc, char **argv) {
     server_list[num_servers].port = my_port;
     get_my_ip(server_list[num_servers].ip);
     num_servers++;
+    listener_set_up();
     print_server_list();
-    distribute_identity();
+    distribute_update();
   }
   // initialize queue 
-  listener_set_up();
   while(1) { 
     sleep(1000);
   } 
 }
 
-void get_my_ip(char *buffer) {
-  struct hostent *h;
-  char name[BUFFER_SIZE];
-  int i;
-  gethostname(name, BUFFER_SIZE);
-  h = gethostbyname(name);
-  if(h && h->h_addr_list[0]) {
-    inet_ntop(AF_INET, h->h_addr_list[0], buffer, INET_ADDRSTRLEN);
-  } else {
-    problem("gethostbyname did not provide an address for %s \n", name);
-  }
-  strcpy(my_ip, buffer);
-}
-
-
 void queue_setup() {
+
 }
 
 int get_servers(char *hostname, int port, int add_slots, host_ip **dest) {
   int connection = 0;
-  int n_servers;
+  int n_servers, err;
   bulletin_make_connection_with(hostname, port, &connection);
-  send_string(connection, "0");
+  err = SEND_SERVERS;
+  safe_send(connection, &err, sizeof(int));
   safe_recv(connection, &n_servers, sizeof(int));
   *dest = malloc((n_servers+add_slots)*sizeof(host_ip));
   memset(*dest, 0, (n_servers+add_slots)*sizeof(host_ip));
@@ -89,21 +76,18 @@ int get_servers(char *hostname, int port, int add_slots, host_ip **dest) {
   return n_servers;
 }
 
-
-void send_identity(int connection) {
-  char buffer[8];
-  sprintf(buffer, "%d", my_port);
-  send_string(connection, buffer);
-}
-
 void send_update(int connection) {
-  send_string(connection, "3");
-  send(connection, &num_servers, sizeof(int), 0);
-  send(connection, (void*)server_list, num_servers*sizeof(host_ip), 0);
-  //verification code add later?
+  int err;
+  err = RECEIVE_UPDATE;
+  safe_send(connection, &err, sizeof(int));
+  safe_send(connection, &num_servers, sizeof(int));
+  safe_send(connection, (void*)server_list, num_servers*sizeof(host_ip));
+  safe_recv(connection, &err, sizeof(int));
+  if(err) {
+  }  
 }
 
-void distribute_identity() {
+void distribute_update() {
   int i, connection;
   for(i = 0; i < num_servers; i++) {
     if(strcmp(my_ip, server_list[i].ip)) {

@@ -186,7 +186,7 @@ void bulletin_exit(int errcode) {
   exit(errcode);
 }
 
-void get_ip(int connection, char *buffer) {
+int get_ip(int connection, char *buffer) {
     struct sockaddr_in their_address;
     socklen_t length;
     int err;
@@ -194,11 +194,12 @@ void get_ip(int connection, char *buffer) {
     memset(&their_address, 0, sizeof(struct sockaddr_in));
     err = getpeername(connection, (struct sockaddr *)&their_address, &length);
     if(err < 0) {
-      fprintf(stderr, "get peer name failed %d\n", errno);
-      exit(-1);
+      problem("get peer name failed %d\n", errno);
+      return FAILURE;
     }
     if(!inet_ntop(AF_INET, &(their_address.sin_addr), buffer, INET_ADDRSTRLEN))
-      fprintf(stderr, "inet_ntop failed %d\n", errno);
+      problem("inet_ntop failed %d\n", errno);
+    return OKAY;
 }
 
 int safe_send(int connection, void *data, size_t length) {
@@ -217,9 +218,9 @@ int safe_send(int connection, void *data, size_t length) {
     return TRANSMISSION_ERROR;
   }
   
-  err = 0;
+  err = FAILURE;
   recv(connection, &err, sizeof(err), 0);
-  if(!err) {
+  if(err) {
     problem("Error in communication.  receiver was not ready.\n");
     return RECEIVER_ERROR;
   }
@@ -261,7 +262,7 @@ int safe_recv(int connection, void *data, size_t max) {
     return RECEIVER_ERROR;
   }
   
-  err = 1;
+  err = OKAY;
   send(connection, &err, sizeof(err), 0);
   max = received;
   received = 0;
@@ -275,4 +276,19 @@ int safe_recv(int connection, void *data, size_t max) {
     received += err;
   }
   return received;
+}
+
+int get_my_ip(char *buffer) {
+  struct hostent *h;
+  char name[BUFFER_SIZE];
+  int i;
+  gethostname(name, BUFFER_SIZE);
+  h = gethostbyname(name);
+  if(h && h->h_addr_list[0]) {
+    inet_ntop(AF_INET, h->h_addr_list[0], buffer, INET_ADDRSTRLEN);
+  } else {
+    problem("gethostbyname did not provide an address for %s \n", name);
+    return FAILURE;
+  }
+  return OKAY;
 }

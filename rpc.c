@@ -1,25 +1,25 @@
 void handle_rpc(int connection) {
-  char rpc[RPC_STR_LEN+1];
-  char host[INET_ADDRSTRLEN], temp[INET_ADDRSTRLEN];
+  int rpc;
+  char host[INET_ADDRSTRLEN];
   get_ip(connection, host);
-  recv_string(connection, rpc, RPC_STR_LEN);
+  safe_recv(connection, &rpc, sizeof(rpc));
   printf(BAR);
-  printf("RPC %s from %s\n", rpc, host);
+  printf("RPC %d from %s\n", rpc, host);
   printf(BAR);
-  switch(atoi(rpc)) {
-  case 0:
+  switch(rpc) {
+  case SEND_SERVERS:
     rpc_send_servers(connection);
     break;
-  case 1:
+  case SERVE_JOB:
     rpc_serve_job(connection);
     break;
-  case 2:
+  case JOB_COMPLETE:
     rpc_inform_of_completion(connection);
     break;
-  case 3:
+  case RECEIVE_UPDATE:
     rpc_receive_update(connection);
     break;
-  case 4:
+  case RECEIVE_JOB_COPY:
     rpc_receive_job_copy(connection);
     break;
   default:
@@ -34,44 +34,33 @@ void rpc_send_servers(int connection) {
   safe_send(connection, (void*)server_list, num_servers*sizeof(host_ip));
 }
 
-// Learns of new connection and adds to list of current servers. 
 
 void rpc_receive_update(int connection){
-  host_ip *name;
-  char buffer[9], ip[INET_ADDRSTRLEN];
-  int num_servers_temp;
-  recv(connection, &num_servers, sizeof(int), 0);
-  recv(connection, (void*)server_list, num_servers*sizeof(host_ip), 0);
+  host_ip *new;
+  int n_servers, err;
+  safe_recv(connection, &n_servers, sizeof(int));
+  new = malloc(sizeof(host_ip)*n_servers);
+  safe_recv(connection, (void*)new, n_servers*sizeof(host_ip));
+  if(verify_update(new, n_servers, server_list, num_servers)) {
+    err = FAILURE;
+    safe_send(connection, &err, sizeof(int));
+  } else {
+    err = OKAY;
+    safe_send(connection, &err, sizeof(int));
+  }
 }
 
 int verify_update(host_ip *new, int nsize, host_ip* old, int osize) {
-  
+  return 0;
 }
-
-void rpc_receive_identity(int connection){
-  host_ip *name;
-  char buffer[9], ip[INET_ADDRSTRLEN];
-  int i = 0;
-  get_ip(connection, ip);
-  recv_string(connection, buffer, 8);
-  while( server_list[i].port != 0) { 
-    if(!strcmp(server_list[i].ip, buffer))
-      return;
-    i++;
-  }
-  name = &server_list[i]; 
-  name->port = atoi(buffer);
-  strcpy(name->ip,ip);
-}
-
 
 void rpc_serve_job(int connection) {
+  
 }
 
 void rpc_receive_job_copy(int connection){
 }
 
-// A runner on another server requests a job from this server.
 void rpc_request_job(int connection) { 
   
 }

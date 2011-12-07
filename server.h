@@ -21,12 +21,11 @@ typedef struct _queue{
 } queue;
     
 void send_identity(int connection);
-void get_my_ip(char *buffer);
 int get_servers(char *hostname, int port, int add_slots, host_ip **dest);
 void listen_for_connection(int *listener);
 void handle_rpc(int connection);
 void send_update(int connection);
-void distribute_identity();
+void distribute_update();
 void listener_set_up();
 void print_server_list();
 
