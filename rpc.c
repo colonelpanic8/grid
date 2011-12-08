@@ -31,16 +31,16 @@ void handle_rpc(int connection) {
 
 void rpc_send_servers(int connection) {
   safe_send(connection, &num_servers, sizeof(int));
-  safe_send(connection, (void*)server_list, num_servers*sizeof(host_ip));
+  safe_send(connection, (void*)server_list, num_servers*sizeof(host_port));
 }
 
 
 void rpc_receive_update(int connection){
-  host_ip *new;
+  host_port *new;
   int n_servers, err;
   safe_recv(connection, &n_servers, sizeof(int));
-  new = malloc(sizeof(host_ip)*n_servers);
-  safe_recv(connection, (void*)new, n_servers*sizeof(host_ip));
+  new = malloc(sizeof(host_port)*n_servers);
+  safe_recv(connection, (void*)new, n_servers*sizeof(host_port));
   if(verify_update(new, n_servers, server_list, num_servers)) {
     err = FAILURE;
     safe_send(connection, &err, sizeof(int));
@@ -53,7 +53,7 @@ void rpc_receive_update(int connection){
   }
 }
 
-int verify_update(host_ip *new, int nsize, host_ip* old, int osize) {
+int verify_update(host_port *new, int nsize, host_port* old, int osize) {
   return 0;
 }
 
@@ -71,7 +71,7 @@ void rpc_request_job(int connection) {
 void rpc_inform_of_completion(int connection) {
 }
 
-void failure_notify(host_ip *fail) {
+void failure_notify(host_port *fail) {
   int connection = 0;
   int i;
   for(i = 0; i < num_servers; i++) {  

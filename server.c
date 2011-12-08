@@ -14,7 +14,7 @@
 #include "server.h"
 
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
-host_ip *server_list;
+host_port *server_list;
 int num_servers;
 int my_port;
 char my_ip[INET_ADDRSTRLEN];
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
   listener_set_up();
   if(argc < 3) {
 
-    server_list = malloc(sizeof(host_ip));
+    server_list = malloc(sizeof(host_port));
     num_servers = 1;
 
     get_my_ip(server_list[0].ip);
@@ -63,7 +63,7 @@ void queue_setup() {
 
 }
 
-int get_servers(char *hostname, int port, int add_slots, host_ip **dest) {
+int get_servers(char *hostname, int port, int add_slots, host_port **dest) {
   int connection = 0;
   int n_servers, err;
   bulletin_make_connection_with(hostname, port, &connection);
@@ -71,9 +71,9 @@ int get_servers(char *hostname, int port, int add_slots, host_ip **dest) {
   safe_send(connection, &err, sizeof(int));
   safe_recv(connection, &n_servers, sizeof(int));
 
-  *dest = malloc((n_servers+add_slots)*sizeof(host_ip));
-  memset(*dest, 0, (n_servers+add_slots)*sizeof(host_ip));
-  safe_recv(connection, *dest, n_servers*sizeof(host_ip));
+  *dest = malloc((n_servers+add_slots)*sizeof(host_port));
+  memset(*dest, 0, (n_servers+add_slots)*sizeof(host_port));
+  safe_recv(connection, *dest, n_servers*sizeof(host_port));
   close(connection);
   return n_servers;
 }
@@ -83,7 +83,7 @@ void send_update(int connection) {
   err = RECEIVE_UPDATE;
   safe_send(connection, &err, sizeof(int));
   safe_send(connection, &num_servers, sizeof(int));
-  safe_send(connection, (void*)server_list, num_servers*sizeof(host_ip));
+  safe_send(connection, (void*)server_list, num_servers*sizeof(host_port));
   safe_recv(connection, &err, sizeof(int));
   if(err) {
     //handle conflicts somehow here
@@ -133,7 +133,7 @@ void replicate(job *rep_job) {
   }
 }
 
-void copy_job(host_ip *hip, job *cop_job) {
+void copy_job(host_port *hip, job *cop_job) {
   int connection = 0;
   bulletin_make_connection_with(hip->ip, hip->port, &connection);
   send_string(connection, "4");
@@ -152,7 +152,7 @@ void selectHost(job *copy_job) {
   }
 }
 
-void add_replica(host_ip host, job *rep_job) {
+void add_replica(host_port host, job *rep_job) {
   int i = 0;
   while(rep_job->replica_list[i].port != 0) {
     i++;
