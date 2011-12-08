@@ -1,3 +1,5 @@
 server
 bulletin.o
 server.o
+client.o
+client
