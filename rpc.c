@@ -53,6 +53,37 @@ void rpc_receive_update(int connection){
   }
 }
 
+job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int *flags){
+  int i;
+  job *ajob;
+  ajob = malloc(sizeof(job));
+  memset(ajob, 0 , sizeof(ajob));
+  for(i = 0; i < num_files; i++) {
+    if(flags[i]) {
+      ajob->dependent_on[i] = atoi(files[i]);
+    }
+    strcpy(ajob->input_files[i], files[i]);
+  }
+  return ajob;
+}
+
+void rpc_add_job(int connection) {
+  job *ajob;
+  int num_file, i, flags[MAX_ARGUMENTS];
+  char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], temp[BUFFER_SIZE];
+  recv_string(connection, temp, BUFFER_SIZE-1);
+  num_file = atoi(temp);
+  for(i = 0; i < num_file; i++) {
+    recv_string(connection, files[i], BUFFER_SIZE-1);
+    recv_string(connection, temp, BUFFER_SIZE-1);
+    flags[i] = atoi(temp);
+  }
+  close(connection);
+  ajob = create_job(num_file, files, flags);
+  replicate(ajob);
+  add_to_queue(ajob, activeQueue); 
+}
+
 int verify_update(host_port *new, int nsize, host_port* old, int osize) {
   return 0;
 }
@@ -104,38 +135,6 @@ int contains(job *current, int jobid) {
   }
   return 0;
 }
-
-job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int *flags){
-  int i;
-  job *ajob;
-  ajob = malloc(sizeof(job));
-  memset(ajob, 0 , sizeof(ajob));
-  for(i = 0; i < num_files; i++) {
-    if(flags[i]) {
-      ajob->dependent_on[i] = atoi(files[i]);
-    }
-    strcpy(ajob->input_files[i], files[i]);
-  }
-  return ajob;
-}
-
-void rpc_add_job(int connection) {
-  job *ajob;
-  int num_file, i, flags[MAX_ARGUMENTS];
-  char files[MAX_ARGUMENTS][BUFFER_SIZE], temp[BUFFER_SIZE];
-  recv_string(connection, temp, BUFFER_SIZE-1);
-  num_file = atoi(temp);
-  for(i = 0; i < num_file; i++) {
-    recv_string(connection, files[i], BUFFER_SIZE-1);
-    recv_string(connection, temp, BUFFER_SIZE-1);
-    flags[i] = atoi(temp);
-  }
-  close(connection);
-  ajob = create_job(num_file, files, flags);
-  replicate(ajob);
-  add_to_queue(ajob, activeQueue); 
-}
-
 
 void check_avail(job *current) {
   int i = 0;

@@ -1,25 +1,3 @@
-typedef struct _host_port {
-  int port;
-  char ip[INET_ADDRSTRLEN];
-} host_port;
-
-typedef struct _job{
-  int id, number_inputs, dependent_on[MAX_ARGUMENTS];
-  char input_files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], *outputFile;
-  host_port replica_list[NUM_REPLICAS];
-  int inputs_available;
-} job;
-
-typedef struct _node_j {
-  job *obj; 
-  struct _node_j *next;
-} node_j;
-
-typedef struct _queue{
-  node_j *head; 
-  node_j *tail;
-} queue;
-    
 void send_identity(int connection);
 int get_servers(char *hostname, int port, int add_slots, host_port **dest);
 void listen_for_connection(int *listener);
@@ -42,7 +20,7 @@ int verify_update(host_port *new, int nsize, host_port* old, int osize);
 void failure_notify(host_port *fail);
 void update_q_job_complete (int jobid, queue *Q);
 int contains(job *current, int jobid);
-job *create_job(int num_files, char files[MAX_ARGUMENTS][BUFFER_SIZE], int *flags);
+job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int *flags);
 void remove_dependency(job *current, int jobid);
 void check_avail(job *current);
 void replicate(job *rep_job);

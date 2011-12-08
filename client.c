@@ -11,69 +11,67 @@
 #include <pthread.h>
 #include "bulletin.h"
 #include "constants.h"
+#include "client.h"
 
-void add_job(int num_args, char files[][MAX_ARGUMENT_LEN], int *flags) {
-  char temp[BUFFER_LENGTH];
-  (num_args, temp, BUFFER_LENGTH-1);
-  bulletin_make_connection_with(hostname, port, &connection);
-  send_string(connection, temp);
-  for(i = 0; i < num_dep; i++) {
-    send_string(connection, files[i]);
-    itoa(flags[i], temp, BUFFER_SIZE-1);
-    send_string(connection, temp);
-  }
-  close(connection);
-}
 
 void add_job_std_in(char *host, int port) {
   int num_args, num_jobs, connection, i, flags[MAX_ARGUMENTS];
   job *jobs;
   char job_names[MAX_JOBS][MAX_ARGUMENT_LEN], files[MAX_ARGUMENTS][BUFFER_SIZE];
   char temp[BUFFER_SIZE];
+  jobs = malloc(sizeof(job)*num_jobs);
 
 
   printf("How many jobs would you like to enqueue?\n");
-  scanf("%d", &num_jobs);
-  if(num_jobs == 1) {
-    get_job();
-  }
+  fgets(temp, BUFFER_SIZE, stdin);
+  sscanf(temp, "%d", &num_jobs);
   
+  
+
   for(i = 0; i < num_jobs; i++) {
-    printf("Enter the name of job (case insensitive %d\n", i);
-    fgets(job_names[i], MAX_ARGUMENT_LEN-1, stdin);
-    lowercase(job_names[i]);
+    printfl("Give the name of job %d", i);
+    fgets(temp, MAX_ARGUMENT_LEN, stdin);
+    lowercase(temp);
+    strcpy(job_names[i], temp);
   }
-  jobs = malloc(sizeof(job)*num_jobs);
+
+
   for(i = 0; i < num_jobs; i++) {
     do{
-      printfl("Enter the names of the jobs that %s depends on separated by commas(only immediate dependence)");
-      fgets(temp, "%s", stdin);
-    }  while(parse_dependencies(temp, job_names, jobs[i]))
+      printfl("Enter the names of the jobs that %s depends on separated by commas(only immediate dependence)",
+	      job_names[i]);
+      fgets(temp, BUFFER_SIZE-1, stdin);
+    }  while(parse_dependencies(temp, job_names, &jobs[i]));
   }
   
-    if(flags[i]) {
-      printf("Input a job id number\n");
-      fgets(files[i], BUFFER_SIZE-1, stdin);
-    } else {
-      printf("Input a file number\n");
-      fgets(files[i], BUFFER_SIZE-1, stdin);
-    }
-  }
 }
-
 void lowercase(char *str) {
+  int i=0;
      while(str[i]) {
        str[i] = (char)tolower(str[i]);
+       i++;
      }
 }
 
 
 
-int parse_dependencies(char *temp, char job_names[MAX_JOBS][MAX_ARGUMENT_LEN], job *j) {
+int parse_dependencies(char *str, char job_names[MAX_JOBS][MAX_ARGUMENT_LEN], job *j) {
+  char temp[BUFFER_SIZE];
+  char *point;
+  while(point = strchr(str, (int)',')) {
+    strncpy(temp, str, str-point);
+    printfl("%s", temp);
+    str = point;
+    str++;
+
+
+  }
   
+  return 0;
 }
 
 
 
 int main(int argc, char **argv) {
+  add_job_std_in(NULL, 0);
 }
