@@ -1,6 +1,31 @@
+NOTE: Always use safe_send and safe_receive for network comms!
+
 TODO:
-All failure code...
-Serve Job RPC...
+Update host_ip struct:
+       -Change name?
+       	       -host_ip makes no sense
+	       -should be host_port
+       -add int to contain last known number of jobs
+       -add connection_failed flag for failure
+
+Write heartbeat code:
+      -this
+
+Failure code:
+	- Deal with connection failures
+	  -should be somewhat easier with safe_send safe_recv
+	  	  -what should be done on a transmission failure
+		  	-try again? continue without
+	- Write server_comm_failed - this marks the connection_failed flag in the host_ip struct
+	  - this should be called when we fail to connect
+	  	- needs to alert everyone
+		-if server_comm_failed is called again and the connectio_failed flag is set we:
+		    -remove the node entirely?
+		    -put it in dormant state?
+	- 
+
+
+
 Request Job code...
 Recieve Copy RPC...
 
@@ -18,7 +43,10 @@ Marcus:
 
 Micheal:
 -runner code
-	-Make a new .c file runner .c
-	-add an entry in the make file
-	-make sure to add a dependency on the bulletin.o code
-	-make sure to import runner.h in server.c
+	startup:
+		-Make a new .c file runner.c
+		-add an entry in the make file
+		-make sure to add a dependency on the bulletin.o object file
+		-make sure to import runner.h in server.c
+	methods:
+		-request_job_local -look in the local queue first
