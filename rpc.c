@@ -105,7 +105,7 @@ int contains(job *current, int jobid) {
   return 0;
 }
 
-job *create_job(int num_files, char files[MAX_ARGUMENTS][BUFFER_SIZE], int *flags){
+job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int *flags){
   int i;
   job *ajob;
   ajob = malloc(sizeof(job));
