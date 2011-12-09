@@ -68,7 +68,7 @@ int get_servers(char *hostname, int port, int add_slots, host_port **dest) {
   int n_servers, err;
   bulletin_make_connection_with(hostname, port, &connection);
   err = SEND_SERVERS;
-  (connection, &err, sizeof(int));
+  safe_send(connection, &err, sizeof(int));
   safe_recv(connection, &n_servers, sizeof(int));
 
   *dest = malloc((n_servers+add_slots)*sizeof(host_port));
