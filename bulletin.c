@@ -37,16 +37,6 @@
 #include "constants.h"
 #include "bulletin.h"
 
-#define TCP_PROTOCOL 6
-
-#define BULLETIN_TERMINATE             ("STOP")
-
-#define BULLETIN_OK                      0
-#define BULLETIN_HOSTNAME_LOOKUP_ERROR (-1)
-#define BULLETIN_PORT_IN_USE_ERROR     (-2)
-#define BULLETIN_CONNECT_ERROR         (-3)
-#define BULLETIN_TALK_ERROR            (-4)
-
 //
 // recv_string
 //
@@ -165,7 +155,7 @@ int bulletin_make_connection_with(char *hostname, int port, int *connection) {
 
   // grab a new socket to connect with the server
   bulletin_socket = socket(PF_INET, SOCK_STREAM, TCP_PROTOCOL);
-  if (bulletin_socket == -1) return BULLETIN_CONNECT_ERROR;
+  if (bulletin_socket == -1) return BULLETIN_SOCKET_ERROR;
 
   lookup_result = build_address(hostname,port,&address);
   if (lookup_result < 0) return lookup_result;
