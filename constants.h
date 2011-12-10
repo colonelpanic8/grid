@@ -25,6 +25,12 @@
 #define RECEIVE_JOB_COPY 4
 #define INFORM_OF_FAILURE 5
 
+//Job Status
+#define NOT_READY -1
+#define READY 0
+#define RUNNING 1
+#define COMPLETED 2
+
 typedef struct _host_port {
   int port;
   char ip[INET_ADDRSTRLEN];
@@ -40,18 +46,19 @@ typedef struct _host_list {
 } host_list;
 
 typedef struct _job{
-  int id, number_inputs, dependent_on[MAX_ARGUMENTS];
+  int id, number_inputs, status, dependent_on[MAX_ARGUMENTS];
   char input_files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], *outputFile;
   host_list *replica_list;
   int inputs_available;
 } job;
 
-typedef struct _node_j {
-  job *obj; 
-  struct _node_j *next;
-} node_j;
+typedef struct _job_node {
+  job *entry;
+  struct _job_node *next;
+  pthread_mutex_t lock;
+} job_list_node;
 
 typedef struct _queue{
-  node_j *head; 
-//  node_j *tail;
+  job_list_node *head; 
+  //job_node *tail;
 } queue;

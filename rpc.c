@@ -116,12 +116,12 @@ void rpc_inform_of_failure(int connection) {
 // If a job is complete then we need to update the queue to make jobs that depended on that job available.
 
 void update_q_job_complete (int jobid, queue *Q) {
-   node_j *current;
+   job_list_node *current;
    current = Q->head;
    while(current != NULL) {
-       if (contains(current->obj, jobid)) {
-	 remove_dependency(current->obj, jobid);
-         check_avail(current->obj);
+       if (contains(current->entry, jobid)) {
+	 remove_dependency(current->entry, jobid);
+         check_avail(current->entry);
        }
        current = current->next;
    } 
@@ -158,9 +158,9 @@ void remove_dependency(job *current, int jobid) {
 }
 
 void add_to_queue(job *addJob, queue *Q) {
-  node_j *n; 
-  n = (node_j *)malloc(sizeof(node_j));
-  n->obj = addJob;
+  job_list_node *n; 
+  n = (job_list_node *)malloc(sizeof(job_list_node));
+  n->entry = addJob;
   n->next = Q->head;
   Q->head = n;
 }

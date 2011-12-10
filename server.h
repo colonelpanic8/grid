@@ -7,7 +7,7 @@ void distribute_update();
 void listener_set_up();
 void print_server_list();
 
-void rpc_serve_job();
+void rpc_serve_job(int connection);
 void rpc_send_servers(int connection);
 void rpc_request_job(int connection); 
 void rpc_inform_of_completion(int connection);
@@ -15,6 +15,7 @@ void rpc_receive_update(int connection);
 void rpc_add_job(int connection);
 void rpc_receive_update(int connection);
 void rpc_receive_job_copy(int connection);
+void rpc_inform_of_failure(int connection);
 
 int verify_update(host_list* new, host_list* old);
 void failure_notify(host_port *fail);
@@ -30,6 +31,7 @@ void add_replica(host_port *host, job *rep_job);
 void add_to_queue(job *addJob, queue *Q);
 void add_job(job *addJob);
 void queue_setup();
+job *get_job();
 
 // linked list and host-port handling
 void clone_host_list(host_list *old_list, host_list *new_list);
@@ -51,5 +53,3 @@ void notify_others_of_failure(host_port *failed_host);
 void inform_of_failure(int connection, host_port *failed_host);
 void update_q_host_failed (host_port* failed_host, queue *Q);
 void replace_host_in_replica_list(host_port* failed_host, job* job);
-// rpc
-void rpc_inform_of_failure(int connection);

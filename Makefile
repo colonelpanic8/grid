@@ -8,13 +8,13 @@ all: server client
 server: server.o bulletin.o
 	gcc -g -lpthread -o server server.o bulletin.o
 
-server.o: server.c bulletin.h rpc.c server.h rpc.c
+server.o: server.c bulletin.h rpc.c server.h rpc.c constants.h
 
-client: client.o bulletin.o 
+client: client.o bulletin.o
 
-client.o: client.c bulletin.h
+client.o: client.c bulletin.h constants.h
 
-bulletin.o: bulletin.c bulletin.h
+bulletin.o: bulletin.c bulletin.h constants.h
 
 clean:
 	rm *.o

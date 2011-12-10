@@ -16,24 +16,48 @@
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list;
 int num_servers;
-int my_port;
-host_port* my_hostport;
+host_port *my_hostport;
 queue *activeQueue;
 queue *backupQueue;
 
 #include "rpc.c"
+
+int main(int argc, char **argv) {
+  char name[INET_ADDRSTRLEN];
+  listener_set_up();
+  server_list = new_host_list();
+  queue_setup();
+
+  my_hostport = (host_port *)malloc(sizeof(host_port));
+  get_my_ip(my_hostport->ip);
+  my_hostport->port = atoi(argv[1]);
+
+  if(argc < 3) {
+    add_to_host_list(my_hostport, server_list);
+    print_server_list();
+  } else {
+    get_servers(argv[2], atoi(argv[3]), 1, server_list);
+    add_to_host_list(my_hostport,server_list);
+    print_server_list();
+    distribute_update();
+  }
+  // initialize queue 
+  while(1) { 
+    sleep(1000);
+  } 
+}
 
 int send_host_list(int connection, host_list *list) {
   int err, num;
   host_list_node *runner;
   runner = list->head;
   num = 0;
-
+  
   while(runner) {
     num++;
     runner = runner->next;
   }
-
+  
   err = safe_send(connection, &num, sizeof(int));
   if(err < 0) return err;
   
@@ -62,7 +86,7 @@ int receive_host_list(int connection, host_list *list) {
     }
     add_to_host_list(temp, list);
   }
-
+  
   return OKAY;
 }
 
@@ -112,9 +136,9 @@ host_port* find_host_in_list(char *hostname, host_list *list) {
   host_list_node *current_node;
   current_node = list->head;
   while(current_node != NULL) { 
-     if (!strcmp(current_node->host->ip,hostname)) { return current_node->host; }
+    if (!strcmp(current_node->host->ip,hostname)) { return current_node->host; }
      current_node = current_node->next;
- }
+  }
 }
 
 host_port* get_hostport_from_connection(int connection) {
@@ -182,10 +206,10 @@ void inform_of_failure(int connection, host_port *failed_host) {
 }
 
 void update_q_host_failed (host_port* failed_host, queue *Q) {
-   node_j *current;
+   job_list_node *current;
    current = Q->head;
    while(current != NULL) {
-       replace_host_in_replica_list(failed_host, current->obj);
+       replace_host_in_replica_list(failed_host, current->entry);
        current = current->next;
    } 
 }
@@ -221,32 +245,10 @@ void print_server_list() {
   }
 }
 
-int main(int argc, char **argv) {
-  char name[INET_ADDRSTRLEN];
-  my_port = atoi(argv[1]);
-  listener_set_up();
-  server_list = new_host_list();
-  queue_setup();
-
-  my_hostport = (host_port *)malloc(sizeof(host_port));
-  get_my_ip(my_hostport->ip);
-    
-  my_hostport->port = my_port;
-
-  if(argc < 3) {
-    add_to_host_list(my_hostport, server_list);
-    print_server_list();
-  } else {
-    get_servers(argv[2], atoi(argv[3]), 1, server_list);
-    add_to_host_list(my_hostport,server_list);
-    print_server_list();
-    distribute_update();
-  }
-  // initialize queue 
-  while(1) { 
-    sleep(1000);
-  } 
+job *get_job() {
+  return NULL;
 }
+
 
 void queue_setup() {
   activeQueue = (queue *)malloc(sizeof(queue));
@@ -303,7 +305,7 @@ void listener_set_up() {
   pthread_t thread;
   int *listener, connect_result;
   listener = malloc(sizeof(int));
-  connect_result = bulletin_set_up_listener(my_port, listener);
+  connect_result = bulletin_set_up_listener(my_hostport->port, listener);
   pthread_create(&thread, NULL, (void *(*)(void *))listen_for_connection, listener);
 }
 
