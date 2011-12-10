@@ -1,2 +1,1 @@
-job *checkout_job();
-int run_job(job *ajob);
+int run_a_job(job *to_run);

@@ -5,16 +5,18 @@ CFLAGS = -g
 
 all: server client
 
-server: server.o bulletin.o
+server: server.o bulletin.o runner.o
 	gcc -g -lpthread -o server server.o bulletin.o
-
-server.o: server.c bulletin.h rpc.c server.h rpc.c constants.h
 
 client: client.o bulletin.o
 
-client.o: client.c bulletin.h constants.h
-
 bulletin.o: bulletin.c bulletin.h constants.h
+
+server.o: server.c bulletin.h rpc.c server.h rpc.c constants.h
+
+runner.o: runner.c runner.h constants.h server.h
+
+client.o: client.c bulletin.h constants.h
 
 clean:
 	rm *.o
