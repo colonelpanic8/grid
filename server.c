@@ -17,6 +17,7 @@ pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list;
 int num_servers;
 int my_port;
+host_port* my_hostport;
 queue *activeQueue;
 queue *backupQueue;
 
@@ -227,7 +228,6 @@ int main(int argc, char **argv) {
   server_list = new_host_list();
   queue_setup();
 
-  host_port* my_hostport;
   my_hostport = (host_port *)malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
     
