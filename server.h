@@ -30,6 +30,7 @@ void add_replica(host_port *host, job *rep_job);
 void add_to_queue(job *addJob, queue *Q);
 void add_job(job *addJob);
 void update_q_host_failed (host_port* failed_host, queue *Q);
+void queue_setup();
 void handle_host_failure(int connection);
 void replace_host_in_replica_list(host_port* failed_host, job* job);
 void clone_host_list(host_list *old_list, host_list *new_list);

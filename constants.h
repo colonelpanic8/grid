@@ -52,5 +52,5 @@ typedef struct _node_j {
 
 typedef struct _queue{
   node_j *head; 
-  node_j *tail;
+//  node_j *tail;
 } queue;

@@ -193,6 +193,7 @@ int main(int argc, char **argv) {
   listener_set_up();
   server_list = malloc(sizeof(host_list));
   server_list->head = NULL;
+  queue_setup();
 
   char my_ip[INET_ADDRSTRLEN];
   host_port* my_hostport;
@@ -217,7 +218,10 @@ int main(int argc, char **argv) {
 }
 
 void queue_setup() {
-
+  activeQueue = (queue *)malloc(sizeof(queue));
+  backupQueue = (queue *)malloc(sizeof(queue));
+  activeQueue->head = NULL;
+  backupQueue->head = NULL;
 }
 
 int get_servers(char *hostname, int port, int add_slots, host_list *server_list) {
