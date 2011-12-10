@@ -29,15 +29,27 @@ void selectHost(job *copy_job);
 void add_replica(host_port *host, job *rep_job);
 void add_to_queue(job *addJob, queue *Q);
 void add_job(job *addJob);
-void update_q_host_failed (host_port* failed_host, queue *Q);
 void queue_setup();
-void handle_host_failure(int connection);
-void replace_host_in_replica_list(host_port* failed_host, job* job);
+
+// linked list and host-port handling
 void clone_host_list(host_list *old_list, host_list *new_list);
-void get_hostport_from_connection(int connection, host_port *result);
+host_port* find_host_in_list(char *hostname, host_list *list);
+host_port* get_hostport_from_connection(int connection);
 void add_to_host_list(host_port *added_host_port, host_list *list);
 host_list *new_host_list();
 void remove_from_host_list(host_port *removed_host_port, host_list *list);
+host_port* find_host_in_list(char *hostname, host_list *list);
 int receive_host_list(int connection, host_list *list);
 void free_host_list(host_list *list, int flag);
 int send_host_list(int connection, host_list *list);
+
+// failure functions
+void handle_host_failure_by_connection(int connection);
+void handle_host_failure(host_port *failed_host);
+void local_handle_failure(host_port *failed_host);
+void notify_others_of_failure(host_port *failed_host);
+void inform_of_failure(int connection, host_port *failed_host);
+void update_q_host_failed (host_port* failed_host, queue *Q);
+void replace_host_in_replica_list(host_port* failed_host, job* job);
+// rpc
+void rpc_inform_of_failure(int connection);

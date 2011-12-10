@@ -108,20 +108,19 @@ void remove_from_host_list(host_port *removed_host_port, host_list *list) {
   if (currentNode->next->host == removed_host_port) { currentNode->next = currentNode->next->next; }
 }
 
-void find_host_in_list(char *hostname, host_list *list, host_port *result) {
-  result = NULL;
+host_port* find_host_in_list(char *hostname, host_list *list) {
   host_list_node *current_node;
   current_node = list->head;
-  while(current_node != NULL & result == NULL) { 
-     if (!strcmp(current_node->host->ip,hostname)) { result = current_node->host; }
+  while(current_node != NULL) { 
+     if (!strcmp(current_node->host->ip,hostname)) { return current_node->host; }
      current_node = current_node->next;
  }
 }
 
-void get_hostport_from_connection(int connection, host_port *result) {
+host_port* get_hostport_from_connection(int connection) {
   char failed_host_ip[INET_ADDRSTRLEN];
   get_ip(connection,failed_host_ip);
-  find_host_in_list(failed_host_ip,server_list,result);
+  return find_host_in_list(failed_host_ip,server_list);
 }
 
 void clone_host_list(host_list *old_list, host_list *new_list) {
@@ -141,10 +140,44 @@ void clone_host_list(host_list *old_list, host_list *new_list) {
   }
 }
 
-void handle_host_failure(int connection) {
+void handle_host_failure_by_connection(int connection) { // failed on a send
   host_port *failed_host;
-  get_hostport_from_connection(connection,failed_host);
+  failed_host = get_hostport_from_connection(connection);
+  handle_host_failure(failed_host);
+}
+
+void handle_host_failure(host_port *failed_host) { // failed on a send
+  local_handle_failure(failed_host);
+  notify_others_of_failure(failed_host);
+}
+
+void local_handle_failure(host_port *failed_host) {
+  remove_from_host_list(failed_host,server_list);
   update_q_host_failed(failed_host,activeQueue); //backup queue is received by RPC
+}
+
+void notify_others_of_failure(host_port *failed_host) { // tell everyone
+  int connection = 0;
+
+  host_list_node* current_node;
+  current_node = server_list->head;
+
+  while(current_node != NULL) {
+   if(strcmp(current_node->host->ip,my_ip)) {
+    int err;
+    err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
+    if (err < OKAY) { handle_host_failure(current_node->host); } else { inform_of_failure(connection,failed_host); }
+    }
+    current_node = current_node->next;
+  }
+}
+
+void inform_of_failure(int connection, host_port *failed_host) {
+  int err = INFORM_OF_FAILURE;
+  err = safe_send(connection,&err,sizeof(int));
+  if (err < 0) { handle_host_failure_by_connection(connection); return; }
+  err = safe_send(connection,failed_host,sizeof(host_port));
+  if (err < 0) { handle_host_failure_by_connection(connection); return; }
 }
 
 void update_q_host_failed (host_port* failed_host, queue *Q) {
@@ -158,7 +191,6 @@ void update_q_host_failed (host_port* failed_host, queue *Q) {
 
 void replace_host_in_replica_list(host_port* failed_host, job* job) {
   host_list* replica_list = job->replica_list;
-  remove_from_host_list(failed_host,server_list);
   host_list* remaining_servers_list;
   clone_host_list(server_list,remaining_servers_list);
 
@@ -258,9 +290,10 @@ void distribute_update() {
 
   while(current_node != NULL) {
     if(strcmp(my_ip, current_node->host->ip)) {
-      bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
+      err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
+      if (err < OKAY) handle_host_failure(current_node->host);
       err = send_update(connection);
-      if (err < OKAY) handle_host_failure(connection);
+      if (err < OKAY) handle_host_failure_by_connection(connection);
       close(connection);
       current_node = current_node->next;
     }
@@ -300,6 +333,7 @@ void replicate(job *rep_job) {
 
 void copy_job(host_port *hip, job *cop_job) {
   int connection = 0;
+  int err = OKAY;
   bulletin_make_connection_with(hip->ip, hip->port, &connection);
   send_string(connection, "4");
   send(connection, &cop_job, sizeof(job), 0);

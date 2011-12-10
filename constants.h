@@ -23,6 +23,7 @@
 #define SERVE_JOB 2
 #define JOB_COMPLETE 3
 #define RECEIVE_JOB_COPY 4
+#define INFORM_OF_FAILURE 5
 
 typedef struct _host_port {
   int port;

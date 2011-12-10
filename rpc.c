@@ -22,6 +22,9 @@ void handle_rpc(int connection) {
   case RECEIVE_JOB_COPY:
     rpc_receive_job_copy(connection);
     break;
+  case INFORM_OF_FAILURE:
+    rpc_inform_of_failure(connection);
+    break;
   default:
     break;
   }
@@ -100,18 +103,13 @@ void rpc_request_job(int connection) {
 void rpc_inform_of_completion(int connection) {
 }
 
-void failure_notify(host_port *fail) {
-  int connection = 0;
-  int i;
+void rpc_inform_of_failure(int connection) {
+  int err = OKAY;
+  host_port *received_hp, *failed_host;
+  safe_recv(connection,received_hp,sizeof(host_port));  
 
-  host_list_node* current_node;
-  current_node = server_list->head;
-
-  while(current_node != NULL) {
-   bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
-   // send some RPC to notify
-   current_node = current_node->next;
-  }
+  failed_host = find_host_in_list(received_hp->ip,server_list);
+  local_handle_failure(failed_host);
 }
 
 // If a job is complete then we need to update the queue to make jobs that depended on that job available.
