@@ -22,6 +22,9 @@ void handle_rpc(int connection) {
   case RECEIVE_JOB_COPY:
     rpc_receive_job_copy(connection);
     break;
+  case INFORM_OF_FAILURE:
+    rpc_inform_of_failure(connection);
+    break;
   default:
     break;
   }
@@ -30,24 +33,22 @@ void handle_rpc(int connection) {
 }
 
 void rpc_send_servers(int connection) {
-  safe_send(connection, &num_servers, sizeof(int));
-  safe_send(connection, (void*)server_list, num_servers*sizeof(host_port));
+  send_host_list(connection, server_list);
 }
 
 
 void rpc_receive_update(int connection){
-  host_port *new;
-  int n_servers, err;
-  safe_recv(connection, &n_servers, sizeof(int));
-  new = malloc(sizeof(host_port)*n_servers);
-  safe_recv(connection, (void*)new, n_servers*sizeof(host_port));
-  if(verify_update(new, n_servers, server_list, num_servers)) {
+  host_list *new;
+  new = new_host_list();
+  int err;
+  err = receive_host_list(connection, new);
+  if(err < 0) return; //Fix?
+  if(verify_update(new, server_list)) {
     err = FAILURE;
     safe_send(connection, &err, sizeof(int));
   } else {
     err = OKAY;
     safe_send(connection, &err, sizeof(int));
-    num_servers = n_servers;
     free(server_list);
     server_list = new;
   }
@@ -84,7 +85,7 @@ void rpc_add_job(int connection) {
   add_to_queue(ajob, activeQueue); 
 }
 
-int verify_update(host_port *new, int nsize, host_port* old, int osize) {
+int verify_update(host_list *new, host_list *old) {
   return 0;
 }
 
@@ -102,15 +103,14 @@ void rpc_request_job(int connection) {
 void rpc_inform_of_completion(int connection) {
 }
 
-void failure_notify(host_port *fail) {
-  int connection = 0;
-  int i;
-  for(i = 0; i < num_servers; i++) {  
-    if(fail != &server_list[i]) {
-      bulletin_make_connection_with(server_list[i].ip, server_list[i].port, &connection);
-    
-    }
-  }
+void rpc_inform_of_failure(int connection) {
+  int err = OKAY;
+  host_port *received_hp, *failed_host;
+  err = safe_recv(connection,received_hp,sizeof(host_port));  
+  if (err < OKAY) return;
+
+  failed_host = find_host_in_list(received_hp->ip,server_list);
+  local_handle_failure(failed_host);
 }
 
 // If a job is complete then we need to update the queue to make jobs that depended on that job available.
