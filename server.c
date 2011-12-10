@@ -84,21 +84,27 @@ host_list *new_host_list() {
 
 void add_to_host_list(host_port *added_host_port, host_list *list) {
   host_list_node *currentNode;
-  host_list_node *newNode;
-  newNode = (host_list_node *)malloc(sizeof(host_list_node));
-  if (list->head = NULL) { list->head = newNode; } else {
-    currentNode = list->head;
-    while(currentNode->next != NULL) { currentNode = currentNode->next; }
-    currentNode->next = newNode;
-    }
-  newNode->host = added_host_port;
+  currentNode = list->head;
+  if(!list->head) {
+    list->head = (host_list_node *)malloc(sizeof(host_list_node));
+    list->head->host = added_host_port;
+    list->head->next = NULL;
+    return;
+  }
+  while(currentNode->next) {
+    currentNode = currentNode->next;
+  }
+  currentNode->next = (host_list_node *)malloc(sizeof(host_list_node));;
+  currentNode->next->next = NULL;
+  currentNode->next->host = added_host_port;
 }
 
 void remove_from_host_list(host_port *removed_host_port, host_list *list) {
   host_list_node *currentNode;
   currentNode = list->head;
   if(list->head->host == removed_host_port) {list->head = list->head->next; return;}
-  while(currentNode != NULL & currentNode->next->host != removed_host_port) { currentNode = currentNode -> next; }
+  while(currentNode != NULL & currentNode->next->host != removed_host_port)
+    { currentNode = currentNode -> next; }
   if (currentNode->next->host == removed_host_port) { currentNode->next = currentNode->next->next; }
 }
 
@@ -173,11 +179,9 @@ void replace_host_in_replica_list(host_port* failed_host, job* job) {
 }
 
 void print_server_list() {
-  printf("Servers:\n");
-
   host_list_node* current_node;
+  printf("Servers:\n");
   current_node = server_list->head;
-
   while(current_node != NULL) {
     printf("\tIP: %s, port: %d\n", current_node->host->ip, current_node->host->port);
     current_node = current_node->next;
@@ -188,7 +192,8 @@ int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   my_port = atoi(argv[1]);
   listener_set_up();
-  server_list = new_host_list();
+  server_list = malloc(sizeof(host_list));
+  server_list->head = NULL;
 
   char my_ip[INET_ADDRSTRLEN];
   host_port* my_hostport;
@@ -198,7 +203,7 @@ int main(int argc, char **argv) {
   my_hostport->port = my_port;
 
   if(argc < 3) {
-    add_to_host_list(my_hostport,server_list);
+    add_to_host_list(my_hostport, server_list);
     print_server_list();
   } else {
     get_servers(argv[2], atoi(argv[3]), 1, server_list);
