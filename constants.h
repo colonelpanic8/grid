@@ -41,7 +41,7 @@ typedef struct _host_list {
 typedef struct _job{
   int id, number_inputs, dependent_on[MAX_ARGUMENTS];
   char input_files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], *outputFile;
-  host_port replica_list[NUM_REPLICAS];
+  host_list *replica_list;
   int inputs_available;
 } job;
 

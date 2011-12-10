@@ -14,7 +14,7 @@
 #include "server.h"
 
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
-host_port *server_list;
+host_list *server_list;
 int num_servers;
 int my_port;
 char my_ip[INET_ADDRSTRLEN];
@@ -23,14 +23,22 @@ queue *backupQueue;
 
 #include "rpc.c"
 
+host_list *new_host_list() {
+  host_list *newList;
+  newList = malloc(sizeof(host_list));
+  return newList;
+}
+
 void add_to_host_list(host_port *added_host_port, host_list *list) {
   host_list_node *currentNode;
   host_list_node *newNode;
-  currentNode = list->head;
-  while(currentNode->next != NULL) { currentNode = currentNode->next; }
   newNode = (host_list_node *)malloc(sizeof(host_list_node));
+  if (list->head = NULL) { list->head = newNode; } else {
+    currentNode = list->head;
+    while(currentNode->next != NULL) { currentNode = currentNode->next; }
+    currentNode->next = newNode;
+    }
   newNode->host_port = added_host_port;
-  currentNode->next = newNode;
 }
 
 void remove_from_host_list(host_port *removed_host_port, host_list *list) {
@@ -41,61 +49,82 @@ void remove_from_host_list(host_port *removed_host_port, host_list *list) {
   if (currentNode->next->host_port == removed_host_port) { currentNode->next = currentNode->next->next; }
 }
 
-void handle_host_failure(int connection) {
+void get_hostport_from_connection(int connection, host_port *result) {
   char failed_host_ip[INET_ADDRSTRLEN];
   get_ip(connection,failed_host_ip);
-  int i;
-  for(i = 0; i < num_servers; i++) {
-    if (!strcmp(server_list[i].ip,failed_host_ip)) {
-      server_list[i] = server_list[i+1];
-    }
-  }
-  update_q_host_failed(failed_host_ip,activeQueue); //backup queue is received by RPC
+  result = NULL;
+  host_list_node *current_node;
+  current_node = server_list->head;
+  while(current_node != NULL & result == NULL) { 
+     if (!strcmp(current_node->host_port->ip,failed_host_ip)) { result = current_node->host_port; }
+     current_node = current_node->next;
+ }
 }
 
-void update_q_host_failed (char* failed_host_ip, queue *Q) {
+void clone_host_list(host_list *old_list, host_list *new_list) {
+  new_list = (host_list *)malloc(sizeof(host_list));
+  host_list_node *new_node;
+  new_node = (host_list_node *)malloc(sizeof(host_list_node));
+  new_list->head = new_node;
+  host_list_node *old_node;
+  old_node = old_list->head;
+  host_list_node *new_successor;
+  while(old_node != NULL) { 
+    new_node->host_port = old_node->host_port;
+    new_successor = (host_list_node *)malloc(sizeof(host_list_node));
+    new_node->next = new_successor;
+    old_node = old_node->next;
+    new_node = new_node->next;
+  }
+}
+
+void handle_host_failure(int connection) {
+  host_port *failed_host;
+  get_hostport_from_connection(connection,failed_host);
+  update_q_host_failed(failed_host,activeQueue); //backup queue is received by RPC
+}
+
+void update_q_host_failed (host_port* failed_host, queue *Q) {
    node_j *current;
    current = Q->head;
    while(current != NULL) {
-       remove_host_from_replica_list(failed_host_ip, current->obj);
+       replace_host_in_replica_list(failed_host, current->obj);
        current = current->next;
    } 
 }
 
-void remove_host_from_replica_list(char* failed_host_ip, job* job) {
-  host_port** remaining_server_list = malloc(sizeof(host_port**)*num_servers);
-  host_port* replica_list = job->replica_list;
-  int i;
-  int j;
-  for(i = 0; i < num_servers; i++) {
-    remaining_server_list[i] = &server_list[i];
+void replace_host_in_replica_list(host_port* failed_host, job* job) {
+  host_list* replica_list = job->replica_list;
+  remove_from_host_list(failed_host,server_list);
+  host_list* remaining_servers_list;
+  clone_host_list(server_list,remaining_servers_list);
+
+  host_list_node* current_node;
+  current_node = job->replica_list->head;
+
+  while(current_node != NULL) {
+    current_node = current_node->next;
+    remove_from_host_list(current_node->host_port,remaining_servers_list);
   }
-  i = 0;
-  while(replica_list[i].port != 0 & strcmp(job->replica_list[i].ip,failed_host_ip)) {
-    for(j = 0; j < num_servers; j++) { // remove server found from available servers
-      if ( !strcmp(server_list[j].ip,replica_list[i].ip) ) { remaining_server_list[j] = NULL; }
-    }
-    i++;
-  }
-  while(replica_list[i].port != 0) {
-    replica_list[i] = replica_list[i+1];
-    for(j = 0; j < num_servers; j++) { // remove remaining good servers from available servers
-      if ( !strcmp(server_list[j].ip,replica_list[i+1].ip) ) { remaining_server_list[j] = NULL; }
-    }
-    i++;
-  }
-  i = 0;
-  while(remaining_server_list[i] == NULL) {
-    i++;
-  }  
-  add_replica(*remaining_server_list[i], job);
+  
+  remove_from_host_list(failed_host,job->replica_list);
+
+  host_port* replacement_host;
+  replacement_host = remaining_servers_list->head->host_port; // not great
+  
+  if(replacement_host != NULL) { add_replica(replacement_host, job); }
 }
 
 void print_server_list() {
   int i;
   printf("Servers:\n");
-  for(i = 0; i < num_servers; i++) {
-    printf("\tIP: %s, port: %d\n", server_list[i].ip, server_list[i].port);
+
+  host_list_node* current_node;
+  current_node = server_list->head;
+
+  while(current_node != NULL) {
+    printf("\tIP: %s, port: %d\n", current_node->host_port->ip, current_node->host_port->port);
+    current_node = current_node->next;
   }
 }
 
@@ -104,20 +133,22 @@ int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   my_port = atoi(argv[1]);
   listener_set_up();
+  server_list = new_host_list();
+
+  char* my_ip;
+  get_my_ip(my_ip);
+
+  _host_port* my_hostport;
+    
+  my_hostport->ip = my_ip;
+  my_hostport->port = my_port;
+
   if(argc < 3) {
-
-    server_list = malloc(sizeof(host_port));
-    num_servers = 1;
-
-    get_my_ip(server_list[0].ip);
-    server_list[0].port = my_port;
+    add_to_host_list(my_hostport,server_list);
     print_server_list();
   } else {
-    num_servers = get_servers(argv[2], atoi(argv[3]), 1, &server_list);
-    server_list[num_servers].port = my_port;
-    get_my_ip(server_list[num_servers].ip);
-    strcpy(my_ip, server_list[num_servers].ip);
-    num_servers++;
+    get_servers(argv[2], atoi(argv[3]), 1, &server_list);
+    add_to_host_list(my_hostport,server_list);
     print_server_list();
     distribute_update();
   }
@@ -149,10 +180,10 @@ int get_servers(char *hostname, int port, int add_slots, host_port **dest) {
 void send_update(int connection) {
   int err;
   int list_conflict = RECEIVE_UPDATE;
-  if (safe_send(connection, &list_conflict, sizeof(int))) {
-    handle_host_failure(connection); } else if (safe_send(connection, &num_servers, sizeof(int))) {
-    handle_host_failure(connection); } else if (safe_send(connection, (void*)server_list, num_servers*sizeof(host_port))) {
-    handle_host_failure(connection); } else if (safe_recv(connection, &list_conflict, sizeof(int))) {
+  if (safe_send(connection, &list_conflict, sizeof(int)) < 0) {
+    handle_host_failure(connection); } else if (safe_send(connection, &num_servers, sizeof(int)) < 0) {
+    handle_host_failure(connection); } else if (safe_send(connection, (void*)server_list, num_servers*sizeof(host_port)) < 0) {
+    handle_host_failure(connection); } else if (safe_recv(connection, &list_conflict, sizeof(int)) < 0) {
     handle_host_failure(connection); } else if (list_conflict) {
     //handle conflicts somehow here
     return;
