@@ -48,26 +48,19 @@ int send_host_list(int connection, host_list *list) {
 
 int receive_host_list(int connection, host_list *list) {
   int err, num, i;
-  host_list_node *runner;
+  host_port *temp;
   num = 0;
   err = safe_recv(connection, &num, sizeof(int));
   if(err < OKAY) return err;
-  
-  list->head = malloc(sizeof(host_list_node));
-  runner = list->head;
+ 
   for(i = 0; i < num; i++) {
-    if(i< num-1) {
-      runner->next = malloc(sizeof(host_list_node));
-    } else {
-      runner->next = NULL;
-    }
-    runner->host = malloc(sizeof(host_port));
-    err = safe_recv(connection, runner->host, sizeof(host_port));
+    temp = malloc(sizeof(host_port));
+    err = safe_recv(connection, temp, sizeof(host_port));
     if(err < OKAY){
       free_host_list(list, 1);
       return err;
     }
-    runner = runner->next;
+    add_to_host_list(temp, list);
   }
 
   return OKAY;
