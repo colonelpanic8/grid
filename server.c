@@ -220,7 +220,7 @@ int get_servers(char *hostname, int port, int add_slots, host_list *server_list)
   int connection = 0;
   int result = 0;
   bulletin_make_connection_with(hostname, port, &connection);
-  result = get_server_list(connection,server_list);
+  result = receive_host_list(connection,server_list);
   close(connection);
   return result;
 }

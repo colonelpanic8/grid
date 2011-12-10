@@ -39,7 +39,7 @@ void rpc_receive_update(int connection){
   host_list *new;
   new = malloc(sizeof(host_list));
   int err;
-  err = receive_server_list(connection, new);
+  err = receive_host_list(connection, new);
   if(verify_update(new, server_list) | err) {
     err = FAILURE;
     safe_send(connection, &err, sizeof(int));
