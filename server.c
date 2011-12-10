@@ -116,7 +116,6 @@ void replace_host_in_replica_list(host_port* failed_host, job* job) {
 }
 
 void print_server_list() {
-  int i;
   printf("Servers:\n");
 
   host_list_node* current_node;
@@ -128,26 +127,24 @@ void print_server_list() {
   }
 }
 
-
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   my_port = atoi(argv[1]);
   listener_set_up();
   server_list = new_host_list();
 
-  char* my_ip;
-  get_my_ip(my_ip);
-
-  _host_port* my_hostport;
+  char my_ip[INET_ADDRSTRLEN];
+  host_port* my_hostport;
+  my_hostport = (host_port *)malloc(sizeof(host_port));
+  get_my_ip(my_hostport->ip);
     
-  my_hostport->ip = my_ip;
   my_hostport->port = my_port;
 
   if(argc < 3) {
     add_to_host_list(my_hostport,server_list);
     print_server_list();
   } else {
-    get_servers(argv[2], atoi(argv[3]), 1, &server_list);
+    get_servers(argv[2], atoi(argv[3]), 1, server_list);
     add_to_host_list(my_hostport,server_list);
     print_server_list();
     distribute_update();
@@ -162,19 +159,13 @@ void queue_setup() {
 
 }
 
-int get_servers(char *hostname, int port, int add_slots, host_port **dest) {
+int get_servers(char *hostname, int port, int add_slots, host_list *server_list) {
   int connection = 0;
-  int n_servers, err;
+  int result = 0;
   bulletin_make_connection_with(hostname, port, &connection);
-  err = SEND_SERVERS;
-  safe_send(connection, &err, sizeof(int));
-  safe_recv(connection, &n_servers, sizeof(int));
-
-  *dest = malloc((n_servers+add_slots)*sizeof(host_port));
-  memset(*dest, 0, (n_servers+add_slots)*sizeof(host_port));
-  safe_recv(connection, *dest, n_servers*sizeof(host_port));
+  result = get_server_list(connection,server_list);
   close(connection);
-  return n_servers;
+  return result;
 }
 
 void send_update(int connection) {
@@ -191,12 +182,16 @@ void send_update(int connection) {
 }
 
 void distribute_update() {
-  int i, connection;
-  for(i = 0; i < num_servers; i++) {
-    if(strcmp(my_ip, server_list[i].ip)) {
-      bulletin_make_connection_with(server_list[i].ip, server_list[i].port, &connection);
+  int connection;
+  host_list_node* current_node;
+  current_node = server_list->head;
+
+  while(current_node != NULL) {
+    if(strcmp(my_ip, current_node->host_port->ip)) {
+      bulletin_make_connection_with(current_node->host_port->ip, current_node->host_port->port, &connection);
       send_update(connection);
       close(connection);
+      current_node = current_node->next;
     }
   }
 }
@@ -223,11 +218,12 @@ void listen_for_connection(int *listener) {
 }
 
 void replicate(job *rep_job) {
-  int i = 0;
-  selectHost(rep_job);  
-  while(rep_job->replica_list[i].port != 0) {
-    copy_job(&rep_job->replica_list[i], rep_job);
-    i++;
+  host_list_node* current_node;
+  current_node = rep_job->replica_list->head;
+
+  while(current_node != NULL) {
+    copy_job(current_node->host_port, rep_job);
+    current_node = current_node->next;
   }
 }
 
@@ -239,23 +235,19 @@ void copy_job(host_port *hip, job *cop_job) {
   close(connection);
 }
 
-void selectHost(job *copy_job) {
-  int i, j;
-  i = 0;
-  j = 0;
-  while(server_list[i].port != 0) i++;
-  while(j < NUM_REPLICAS) {
-    add_replica(server_list[rand() %i ], copy_job);
-    j++;
-  }
-}
+// void selectHost(job *copy_job) {
+//  int i, j;
+//  i = 0;
+//  j = 0;
+//  while(server_list[i].port != 0) i++;
+//  while(j < NUM_REPLICAS) {
+//    add_replica(server_list[rand() %i ], copy_job);
+//    j++;
+//  }
+// }
 
-void add_replica(host_port host, job *rep_job) {
-  int i = 0;
-  while(rep_job->replica_list[i].port != 0) {
-    i++;
-  }
-  rep_job->replica_list[i] = host;
+void add_replica(host_port *host, job *rep_job) {
+  add_to_host_list(host,rep_job->replica_list);
 }
 
 void realloc_servers_list() {
