@@ -24,13 +24,13 @@ queue *backupQueue;
 
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
-  listener_set_up();
   server_list = new_host_list();
   queue_setup();
 
   my_hostport = (host_port *)malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
   my_hostport->port = atoi(argv[1]);
+  listener_set_up();
 
   if(argc < 3) {
     add_to_host_list(my_hostport, server_list);
