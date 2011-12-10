@@ -23,7 +23,6 @@ queue *backupQueue;
 
 #include "rpc.c"
 
-
 int send_host_list(int connection, host_list *list) {
   int err, num;
   host_list_node *runner;
@@ -46,7 +45,6 @@ int send_host_list(int connection, host_list *list) {
   }
   return OKAY;
 }
-
 
 int receive_host_list(int connection, host_list *list) {
   int err, num, i;
@@ -104,16 +102,20 @@ void remove_from_host_list(host_port *removed_host_port, host_list *list) {
   if (currentNode->next->host == removed_host_port) { currentNode->next = currentNode->next->next; }
 }
 
+void find_host_in_list(char *hostname, host_list *list, host_port *result) {
+  result = NULL;
+  host_list_node *current_node;
+  current_node = list->head;
+  while(current_node != NULL & result == NULL) { 
+     if (!strcmp(current_node->host->ip,hostname)) { result = current_node->host; }
+     current_node = current_node->next;
+ }
+}
+
 void get_hostport_from_connection(int connection, host_port *result) {
   char failed_host_ip[INET_ADDRSTRLEN];
   get_ip(connection,failed_host_ip);
-  result = NULL;
-  host_list_node *current_node;
-  current_node = server_list->head;
-  while(current_node != NULL & result == NULL) { 
-     if (!strcmp(current_node->host->ip,failed_host_ip)) { result = current_node->host; }
-     current_node = current_node->next;
- }
+  find_host_in_list(failed_host_ip,server_list,result);
 }
 
 void clone_host_list(host_list *old_list, host_list *new_list) {
