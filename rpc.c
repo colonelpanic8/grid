@@ -68,6 +68,20 @@ job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int 
 }
 
 void rpc_add_job(int connection) {
+  job *ajob;
+  int num_file, i, flags[MAX_ARGUMENTS];
+  char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], temp[BUFFER_SIZE];
+  recv_string(connection, temp, BUFFER_SIZE-1);
+  num_file = atoi(temp);
+  for(i = 0; i < num_file; i++) {
+    recv_string(connection, files[i], BUFFER_SIZE-1);
+    recv_string(connection, temp, BUFFER_SIZE-1);
+    flags[i] = atoi(temp);
+  }
+  close(connection);
+  ajob = create_job(num_file, files, flags);
+  replicate(ajob);
+  add_to_queue(ajob, activeQueue); 
 }
 
 int verify_update(host_port *new, int nsize, host_port* old, int osize) {
@@ -79,6 +93,10 @@ void rpc_serve_job(int connection) {
 }
 
 void rpc_receive_job_copy(int connection){
+}
+
+void rpc_request_job(int connection) { 
+  
 }
 
 void rpc_inform_of_completion(int connection) {
