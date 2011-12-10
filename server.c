@@ -235,6 +235,8 @@ int get_servers(char *hostname, int port, int add_slots, host_list *server_list)
 int send_update(int connection) {
   int err;
   int list_conflict = RECEIVE_UPDATE;
+  err = safe_send(connection, &list_conflict, sizeof(int));
+  if (err < 0) return err;
   err = send_host_list(connection, server_list);
   if (err < 0) return err;
   err = safe_recv(connection, &list_conflict, sizeof(int));
