@@ -17,7 +17,6 @@ pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list;
 int num_servers;
 int my_port;
-char my_ip[INET_ADDRSTRLEN];
 queue *activeQueue;
 queue *backupQueue;
 
@@ -163,7 +162,8 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
   current_node = server_list->head;
 
   while(current_node != NULL) {
-   if(strcmp(current_node->host->ip,my_ip)) {
+   if(strcmp(current_node->host->ip,my_hostport->ip)) {
+    printf("Notifying %s and my ip is %s\n",current_node->host->ip,my_hostport->ip);
     int err;
     err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
     if (err < OKAY) { handle_host_failure(current_node->host); } else { inform_of_failure(connection,failed_host); }
@@ -227,7 +227,6 @@ int main(int argc, char **argv) {
   server_list = new_host_list();
   queue_setup();
 
-  char my_ip[INET_ADDRSTRLEN];
   host_port* my_hostport;
   my_hostport = (host_port *)malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
@@ -289,7 +288,7 @@ void distribute_update() {
   current_node = server_list->head;
 
   while(current_node != NULL) {
-    if(strcmp(my_ip, current_node->host->ip)) {
+    if(strcmp(my_hostport->ip, current_node->host->ip)) {
       err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
       if (err < OKAY) handle_host_failure(current_node->host);
       err = send_update(connection);
