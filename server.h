@@ -29,3 +29,6 @@ void selectHost(job *copy_job);
 void add_replica(host_port host, job *rep_job);
 void add_to_queue(job *addJob, queue *Q);
 void add_job(job *addJob);
+void update_q_host_failed (char* failed_host_ip, queue *Q);
+void handle_host_failure(int connection);
+void remove_host_from_replica_list(char* failed_host_ip, job* job);

@@ -4,7 +4,7 @@
 #define BAR "------------------------------------------------------------\n"
 #define RPC_STR_LEN 1
 #define MAXIMUM_NODES 100
-#define NUM_REPLICAS 1
+#define NUM_REPLICAS 2
 #define BUFFER_SIZE 256
 #define MAX_ARGUMENTS 10
 #define MAX_ARGUMENT_LEN 20
@@ -28,6 +28,15 @@ typedef struct _host_port {
   int port;
   char ip[INET_ADDRSTRLEN];
 } host_port;
+
+typedef struct _host_list_node {
+  host_port *host_port;
+  struct _host_list_node *next;
+} host_list_node;
+
+typedef struct _host_list {
+  host_list_node *head;
+} host_list;
 
 typedef struct _job{
   int id, number_inputs, dependent_on[MAX_ARGUMENTS];
