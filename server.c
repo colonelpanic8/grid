@@ -78,6 +78,7 @@ void free_host_list(host_list *list, int flag) {
 host_list *new_host_list() {
   host_list *newList;
   newList = malloc(sizeof(host_list));
+  newList->head = NULL;
   return newList;
 }
 
@@ -124,7 +125,7 @@ void get_hostport_from_connection(int connection, host_port *result) {
 }
 
 void clone_host_list(host_list *old_list, host_list *new_list) {
-  new_list = (host_list *)malloc(sizeof(host_list));
+  new_list = new_host_list();
   host_list_node *new_node;
   new_node = (host_list_node *)malloc(sizeof(host_list_node));
   new_list->head = new_node;
@@ -191,8 +192,7 @@ int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   my_port = atoi(argv[1]);
   listener_set_up();
-  server_list = malloc(sizeof(host_list));
-  server_list->head = NULL;
+  server_list = new_host_list();
   queue_setup();
 
   char my_ip[INET_ADDRSTRLEN];

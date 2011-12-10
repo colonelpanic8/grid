@@ -36,7 +36,7 @@ void rpc_send_servers(int connection) {
 
 void rpc_receive_update(int connection){
   host_list *new;
-  new = malloc(sizeof(host_list));
+  new = new_host_list();
   int err;
   err = receive_host_list(connection, new);
   if(err < 0) return; //Fix?
