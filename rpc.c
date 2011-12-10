@@ -108,7 +108,7 @@ void failure_notify(host_port *fail) {
   current_node = server_list->head;
 
   while(current_node != NULL) {
-   bulletin_make_connection_with(current_node->host_port->ip, current_node->host_port->port, &connection);
+   bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
    // send some RPC to notify
    current_node = current_node->next;
   }

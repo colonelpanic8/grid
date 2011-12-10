@@ -30,7 +30,7 @@ typedef struct _host_port {
 } host_port;
 
 typedef struct _host_list_node {
-  host_port *host_port;
+  host_port *host;
   struct _host_list_node *next;
 } host_list_node;
 

@@ -38,15 +38,15 @@ void add_to_host_list(host_port *added_host_port, host_list *list) {
     while(currentNode->next != NULL) { currentNode = currentNode->next; }
     currentNode->next = newNode;
     }
-  newNode->host_port = added_host_port;
+  newNode->host = added_host_port;
 }
 
 void remove_from_host_list(host_port *removed_host_port, host_list *list) {
   host_list_node *currentNode;
   currentNode = list->head;
-  if(list->head->host_port == removed_host_port) {list->head = list->head->next; return;}
-  while(currentNode != NULL & currentNode->next->host_port != removed_host_port) { currentNode = currentNode -> next; }
-  if (currentNode->next->host_port == removed_host_port) { currentNode->next = currentNode->next->next; }
+  if(list->head->host == removed_host_port) {list->head = list->head->next; return;}
+  while(currentNode != NULL & currentNode->next->host != removed_host_port) { currentNode = currentNode -> next; }
+  if (currentNode->next->host == removed_host_port) { currentNode->next = currentNode->next->next; }
 }
 
 void get_hostport_from_connection(int connection, host_port *result) {
@@ -56,7 +56,7 @@ void get_hostport_from_connection(int connection, host_port *result) {
   host_list_node *current_node;
   current_node = server_list->head;
   while(current_node != NULL & result == NULL) { 
-     if (!strcmp(current_node->host_port->ip,failed_host_ip)) { result = current_node->host_port; }
+     if (!strcmp(current_node->host->ip,failed_host_ip)) { result = current_node->host; }
      current_node = current_node->next;
  }
 }
@@ -70,7 +70,7 @@ void clone_host_list(host_list *old_list, host_list *new_list) {
   old_node = old_list->head;
   host_list_node *new_successor;
   while(old_node != NULL) { 
-    new_node->host_port = old_node->host_port;
+    new_node->host = old_node->host;
     new_successor = (host_list_node *)malloc(sizeof(host_list_node));
     new_node->next = new_successor;
     old_node = old_node->next;
@@ -104,13 +104,13 @@ void replace_host_in_replica_list(host_port* failed_host, job* job) {
 
   while(current_node != NULL) {
     current_node = current_node->next;
-    remove_from_host_list(current_node->host_port,remaining_servers_list);
+    remove_from_host_list(current_node->host,remaining_servers_list);
   }
   
   remove_from_host_list(failed_host,job->replica_list);
 
   host_port* replacement_host;
-  replacement_host = remaining_servers_list->head->host_port; // not great
+  replacement_host = remaining_servers_list->head->host; // not great
   
   if(replacement_host != NULL) { add_replica(replacement_host, job); }
 }
@@ -122,7 +122,7 @@ void print_server_list() {
   current_node = server_list->head;
 
   while(current_node != NULL) {
-    printf("\tIP: %s, port: %d\n", current_node->host_port->ip, current_node->host_port->port);
+    printf("\tIP: %s, port: %d\n", current_node->host->ip, current_node->host->port);
     current_node = current_node->next;
   }
 }
@@ -168,28 +168,34 @@ int get_servers(char *hostname, int port, int add_slots, host_list *server_list)
   return result;
 }
 
-void send_update(int connection) {
+int send_update(int connection) {
   int err;
   int list_conflict = RECEIVE_UPDATE;
-  if (safe_send(connection, &list_conflict, sizeof(int)) < 0) {
-    handle_host_failure(connection); } else if (safe_send(connection, &num_servers, sizeof(int)) < 0) {
-    handle_host_failure(connection); } else if (safe_send(connection, (void*)server_list, num_servers*sizeof(host_port)) < 0) {
-    handle_host_failure(connection); } else if (safe_recv(connection, &list_conflict, sizeof(int)) < 0) {
-    handle_host_failure(connection); } else if (list_conflict) {
+  err = safe_send(connection, &list_conflict, sizeof(int));
+  if (err < 0) return err;
+  err = safe_send(connection, &num_servers, sizeof(int));
+  if (err < 0) return err;
+  err = safe_send(connection, (void*)server_list, num_servers*sizeof(host_port));
+  if (err < 0) return err;
+  err = safe_recv(connection, &list_conflict, sizeof(int));
+  if (err < 0) return err;
+  if (list_conflict) {
     //handle conflicts somehow here
     return;
   }
 }
 
 void distribute_update() {
+  int err;
   int connection;
   host_list_node* current_node;
   current_node = server_list->head;
 
   while(current_node != NULL) {
-    if(strcmp(my_ip, current_node->host_port->ip)) {
-      bulletin_make_connection_with(current_node->host_port->ip, current_node->host_port->port, &connection);
-      send_update(connection);
+    if(strcmp(my_ip, current_node->host->ip)) {
+      bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
+      err = send_update(connection);
+      if (err < OKAY) handle_host_failure(connection);
       close(connection);
       current_node = current_node->next;
     }
@@ -222,7 +228,7 @@ void replicate(job *rep_job) {
   current_node = rep_job->replica_list->head;
 
   while(current_node != NULL) {
-    copy_job(current_node->host_port, rep_job);
+    copy_job(current_node->host, rep_job);
     current_node = current_node->next;
   }
 }

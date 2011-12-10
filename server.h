@@ -2,7 +2,7 @@ void send_identity(int connection);
 int get_servers(char *hostname, int port, int add_slots, host_list *server_list);
 void listen_for_connection(int *listener);
 void handle_rpc(int connection);
-void send_update(int connection);
+int send_update(int connection);
 void distribute_update();
 void listener_set_up();
 void print_server_list();
