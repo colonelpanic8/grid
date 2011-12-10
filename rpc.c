@@ -30,8 +30,7 @@ void handle_rpc(int connection) {
 }
 
 void rpc_send_servers(int connection) {
-  safe_send(connection, &num_servers, sizeof(int));
-  safe_send(connection, (void*)server_list, num_servers*sizeof(host_port));
+  send_host_list(connection, server_list);
 }
 
 
