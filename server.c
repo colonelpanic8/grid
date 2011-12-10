@@ -56,7 +56,11 @@ int receive_host_list(int connection, host_list *list) {
   list->head = malloc(sizeof(host_list_node));
   runner = list->head;
   for(i = 0; i < num; i++) {
-    runner->next = malloc(sizeof(host_list_node));
+    if(i< num-1) {
+      runner->next = malloc(sizeof(host_list_node));
+    } else {
+      runner->next = NULL;
+    }
     runner->host = malloc(sizeof(host_port));
     err = safe_recv(connection, runner->host, sizeof(host_port));
     if(err < OKAY){
@@ -65,8 +69,7 @@ int receive_host_list(int connection, host_list *list) {
     }
     runner = runner->next;
   }
-  free(runner->next);
-  runner->next = NULL;
+
   return OKAY;
 }
 
