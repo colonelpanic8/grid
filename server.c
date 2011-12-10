@@ -23,6 +23,61 @@ queue *backupQueue;
 
 #include "rpc.c"
 
+
+int send_server_list(int connection, host_list *list) {
+  int err, num;
+  host_list_node *runner;
+  runner = list->head;
+  num = 0;
+
+  while(runner) {
+    num++;
+    runner = runner->next;
+  }
+
+  err = safe_send(connection, &num, sizeof(int));
+  if(err < 0) return err;
+  
+  runner = list->head;
+  while(runner) {
+    err = safe_send(connection, runner->host, sizeof(host_port));
+    if(err < 0) return err;
+    runner = runner->next;
+  }
+  return OKAY;
+}
+
+
+int receive_server_list(int connection, host_list *list) {
+  int err, num;
+  host_list_node runner;
+  num = 0;
+  err = safe_recv(connection, &num, sizeof(int));
+  if(err < OKAY) return err;
+  
+  runner = list->head;
+  for(int i = 0; i < num; i++) {
+    runner->host = malloc(sizeof(host_port));
+    runner = malloc(sizeof(host_port_node));
+    err = safe_recv(connection, runner->host, sizeof(host_port));
+    if(err < OKAY){
+      free_host_list(list);
+      return err;
+    }
+    runner = runner->next;
+  }
+  return OKAY;
+}
+
+void free_host_list(host_list *list) {
+  host_list_node *runner = list->head;
+  while(runner) {
+    if(runner->host) free(runner->host);
+    runner = runner->next;
+  }
+  free(list);
+}
+
 host_list *new_host_list() {
   host_list *newList;
   newList = malloc(sizeof(host_list));
