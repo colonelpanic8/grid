@@ -6,6 +6,7 @@ CFLAGS = -g
 all: server client
 
 server: bulletin.o server.o runner.o hash.o
+	gcc -g -lpthread -o server bulletin.o server.o runner.o hash.o
 
 client: client.o bulletin.o
 

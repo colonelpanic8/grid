@@ -42,6 +42,9 @@
 #define RECEIVE_IDENTITY 7
 #define RECEIVE_IDENTITY_S "Receive Identity"
 
+#define ADD_JOB 8
+#define ADD_JOB_S "Add Job"
+
 //Job Status
 #define NOT_READY (-1)
 #define READY 0
