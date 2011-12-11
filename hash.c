@@ -15,5 +15,5 @@ int hash(unsigned char *str) {
 }
 
 int distance(unsigned long a, unsigned long b) {
-  return abs(a-b);
+  return (HASH_SPACE_SIZE - abs(a-b)) < abs(a-b) ? (HASH_SPACE_SIZE - abs(a-b)) : abs(a-b)
 }
