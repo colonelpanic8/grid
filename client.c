@@ -64,6 +64,59 @@ int get_file_into_memory(char *name, data_size *location) {
 }
 
 
+void simple_add(char *host, int port){
+  int num_files, i;
+  char buffer[BUFFER_SIZE];
+  job ajob;
+  data_size *data;
+  printf("How many files\n");
+  fgets(buffer, BUFFER_SIZE, stdin);
+  sscanf(buffer, "%d", &num_files);
+  for(i = 0; i < num_files; i++) {
+    printf("Enter a file name\n");
+    fgets(ajob.argv[i], MAX_ARGUMENT_LEN, stdin);
+    ajob.argv[i][strlen(ajob.argv[i])-1] = '\0';
+
+  }
+  data = malloc(sizeof(data_size)*num_files);
+  for(i = 0; i < num_files; i++) {
+    get_file_into_memory(ajob.argv[i], &data[i]);
+  }
+  i = submit_job_to_server(host, port, &ajob, data, num_files);
+  printf("Your job id is %d\n", i);
+}
+
+
+
+void lowercase(char *str) {
+  int i=0;
+     while(str[i]) {
+       str[i] = (char)tolower(str[i]);
+       i++;
+     }
+}
+
+int parse_dependencies(char *str, char job_names[MAX_JOBS][MAX_ARGUMENT_LEN], job *j) {
+  char temp[BUFFER_SIZE];
+  char *point;
+  while(point = strchr(str, (int)',')) {
+    strncpy(temp, str, str-point);
+    printfl("%s", temp);
+    str = point;
+    str++;
+
+
+  }
+  
+  return 0;
+}
+
+
+
+int main(int argc, char **argv) {
+  simple_add(argv[1], atoi(argv[2]));
+}
+
 void add_job_std_in(char *host, int port) {
   int num_args, num_jobs, connection, i, flags[MAX_ARGUMENTS];
   job *jobs;
@@ -94,33 +147,4 @@ void add_job_std_in(char *host, int port) {
     }  while(parse_dependencies(temp, job_names, &jobs[i]));
   }
   
-}
-
-void lowercase(char *str) {
-  int i=0;
-     while(str[i]) {
-       str[i] = (char)tolower(str[i]);
-       i++;
-     }
-}
-
-int parse_dependencies(char *str, char job_names[MAX_JOBS][MAX_ARGUMENT_LEN], job *j) {
-  char temp[BUFFER_SIZE];
-  char *point;
-  while(point = strchr(str, (int)',')) {
-    strncpy(temp, str, str-point);
-    printfl("%s", temp);
-    str = point;
-    str++;
-
-
-  }
-  
-  return 0;
-}
-
-
-
-int main(int argc, char **argv) {
-  add_job_std_in(NULL, 0);
 }
