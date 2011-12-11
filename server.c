@@ -12,6 +12,7 @@
 #include "bulletin.h"
 #include "constants.h"
 #include "server.h"
+#include "hash.h"
 
 #define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
 #define LOCKED 1
@@ -45,7 +46,7 @@ int main(int argc, char **argv) {
     print_server_list();
   } else {
     get_servers(argv[2], atoi(argv[3]), 1, server_list);
-    if(acquire_add_lock()) {
+    if(acquire_add_lock(server_list)) {
       problem("Fatal error. Failed to acquire add lock.\n");
       finish();
       exit(-1);
@@ -81,6 +82,20 @@ void finish() {
 }
 
 int acquire_add_lock(host_list *list) {
+  int err, connection;
+  host_list_node *runner;
+  runner = list->head;
+  do {
+    if(runner->host != my_hostport) {
+      err = bulletin_make_connection_with(runner->host->ip, runner->host->port, &connection);
+      if (err < OKAY) handle_host_failure(runner->host);
+      err = request_add_lock(connection);
+      if (err < OKAY) handle_host_failure_by_connection(connection);
+      close(connection);
+      runner = runner->next;
+    }
+  }  while(runner != list->head);
+  return OKAY;
 }
 
 int send_host_list(int connection, host_list *list) {

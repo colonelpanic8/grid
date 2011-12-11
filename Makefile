@@ -1,12 +1,12 @@
 CC = gcc
-CFLAGS = -g
+CFLAGS = -g -lpthread -o
 
 .PHONY: clean
 
 all: server client
 
 server: server.o bulletin.o runner.o hash.o
-	gcc -g -lpthread -o server server.o bulletin.o
+	gcc -g -lpthread -o server bulletin.o server.o runner.o hash.o
 
 client: client.o bulletin.o
 
