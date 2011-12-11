@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
   listener_set_up();
 
   if(argc < 3) {
-    add_to_host_list(my_hostport, server_list);
+    server_list = new_host_list(my_hostport);
     print_server_list();
   } else {
     get_servers(argv[2], atoi(argv[3]), 1, server_list);
@@ -157,14 +157,14 @@ void free_host_list(host_list *list, int flag) {
   free(list);
 }
 
-host_list *new_host_list() {
-  host_list *newList;
-  newList = malloc(sizeof(host_list));
-  newList->head = NULL;
-  return newList;
+host_list *new_host_list(host_port *initial_host_port) {
+  host_list *new_list;
+  new_list = malloc(sizeof(host_list));
+  new_list->head = malloc(sizeof(host_list_node));
+  return new_list;
 }
 
-void add_to_host_list(host_port *added_host_port, node *where_to_add) {
+void add_to_host_list(host_port *added_host_port, host_list_node *where_to_add) {
   host_list_node *new_node;
   new_node = (host_list_node *)malloc(sizeof(host_list_node));
   new_node->next = where_to_add->next;
@@ -178,7 +178,7 @@ void remove_from_host_list(host_port *removed_host_port, host_list *list) {
   if(list->head->host == removed_host_port) {
     node_to_remove = list->head;
     list->head = node_to_remove->next;
-    list->head->location = 0;
+    list->head->host->location = 0;
     free(node_to_remove);
     free(removed_host_port);
     return;}
@@ -209,12 +209,11 @@ host_port* get_hostport_from_connection(int connection) {
 }
 
 void clone_host_list(host_list *old_list, host_list *new_list) {
-  new_list = new_host_list();
-  host_list_node *new_node;
-  new_node = (host_list_node *)malloc(sizeof(host_list_node));
-  new_list->head = new_node;
+  new_list = new_host_list(old_list->head->host);
   host_list_node *old_node;
   old_node = old_list->head;
+  host_list_node *new_node;
+  new_node = new_list->head;
   host_list_node *new_successor;
   while(old_node != old_list->head) { 
     new_node->host = old_node->host;
@@ -275,7 +274,7 @@ void update_q_host_failed (host_port* failed_host, queue *Q) {
    } 
 }
 
-void fix_ownership (job *job) {
+void fix_ownership (job_list_node *job) {
 
 }
 
