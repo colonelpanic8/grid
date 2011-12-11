@@ -50,8 +50,7 @@ int main(int argc, char **argv) {
       finish();
       exit(-1);
     }
-    //integrate_host(my_hostport);
-    add_to_host_list(my_hostport, server_list);
+    integrate_host(my_hostport);
     print_server_list();
     distribute_update();
   }
@@ -62,27 +61,26 @@ int main(int argc, char **argv) {
 }
 
 int integrate_host(host_port *host) {
-  /*
   host_list_node *runner, *max;
   int max_distance, dist;
   max_distance = 0;
   runner = server_list->head;
-  while(runner & runner->next) {
-    dist = abs(runner->host->location - runner->next->host->location);
+  do {
+    dist = distance(runner->host->location, runner->next->host->location);
     if(max_distance < dist) {
       max = runner;
       max_distance = dist;
     }
     runner = runner->next;
-    }*/
+  } while(runner != server_list->head);
+  add_to_host_list(host, max);
 }
 
 
 void finish() {
 }
 
-int acquire_add_lock() {
-  return OKAY;
+int acquire_add_lock(host_list *list) {
 }
 
 int send_host_list(int connection, host_list *list) {

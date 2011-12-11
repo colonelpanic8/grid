@@ -8,7 +8,7 @@ void distribute_update();
 void listener_set_up();
 void print_server_list();
 void finish();
-int acquire_add_lock();
+int acquire_add_lock(host_list *list);
 int integrate_host(host_port *host);
 
 void rpc_serve_job(int connection);

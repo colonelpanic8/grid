@@ -14,6 +14,6 @@ int hash(unsigned char *str) {
   return (int)(sdbm(str) % HASH_SPACE_SIZE);
 }
 
-int distance(unsigned long a, unsigned long b) {
+int distance(int a, int b) {
   return (HASH_SPACE_SIZE - abs(a-b)) < abs(a-b) ? (HASH_SPACE_SIZE - abs(a-b)) : abs(a-b)
 }
