@@ -183,6 +183,7 @@ host_list *new_host_list(host_port *initial_host_port) {
   new_list = malloc(sizeof(host_list));
   new_list->head = malloc(sizeof(host_list_node));
   new_list->head->host = initial_host_port;
+  new_list->head->next = new_list->head;
   return new_list;
 }
 
