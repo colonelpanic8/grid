@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -16,6 +17,9 @@
 
 #define LOCKED 1
 #define UNLOCKED 0
+
+pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
+int counter = 0;
 
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list;

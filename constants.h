@@ -52,6 +52,9 @@
 #define UNLOCK 10
 #define UNLOCK_S "Unlock"
 
+#define TRANSFER_JOB 11
+#define TRANSFER_JOB_S "Transfer Job"
+
 //Job Status
 #define NOT_READY (-1)
 #define READY 0
@@ -61,7 +64,8 @@
 //runner
 
 typedef struct _host_port {
-  int port, jobs, location;
+  int port, jobs;
+  unsigned int location;
   char ip[INET_ADDRSTRLEN];
 } host_port;
 
@@ -89,3 +93,9 @@ typedef struct _queue{
   job_list_node *head; 
   //job_node *tail;
 } queue;
+
+typedef struct _data_size {
+  char *data;
+  size_t size;
+  char name[MAX_ARGUMENT_LEN];
+} data_size;

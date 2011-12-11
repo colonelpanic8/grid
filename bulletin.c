@@ -190,6 +190,21 @@ int get_ip(int connection, char *buffer) {
     return OKAY;
 }
 
+int get_my_ip(char *buffer) {
+  struct hostent *h;
+  char name[BUFFER_SIZE];
+  int i;
+  gethostname(name, BUFFER_SIZE);
+  h = gethostbyname(name);
+  if(h && h->h_addr_list[0]) {
+    inet_ntop(AF_INET, h->h_addr_list[0], buffer, INET_ADDRSTRLEN);
+  } else {
+    problem("gethostbyname did not provide an address for %s \n", name);
+    return FAILURE;
+  }
+  return OKAY;
+}
+
 int safe_send(int connection, void *data, size_t length) {
   char *bits;
   size_t transmitted;
@@ -264,19 +279,4 @@ int safe_recv(int connection, void *data, size_t max) {
     received += err;
   }
   return received;
-}
-
-int get_my_ip(char *buffer) {
-  struct hostent *h;
-  char name[BUFFER_SIZE];
-  int i;
-  gethostname(name, BUFFER_SIZE);
-  h = gethostbyname(name);
-  if(h && h->h_addr_list[0]) {
-    inet_ntop(AF_INET, h->h_addr_list[0], buffer, INET_ADDRSTRLEN);
-  } else {
-    problem("gethostbyname did not provide an address for %s \n", name);
-    return FAILURE;
-  }
-  return OKAY;
 }

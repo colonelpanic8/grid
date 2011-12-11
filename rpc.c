@@ -138,36 +138,71 @@ void rpc_receive_update(int connection){
   safe_send(connection, &err, sizeof(int));
 }
 
-job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int *flags){
-  int i;
-  job *ajob;
-  ajob = malloc(sizeof(job));
-  memset(ajob, 0 , sizeof(ajob));
-  for(i = 0; i < num_files; i++) {
-    if(flags[i]) {
-      ajob->dependent_on[i] = atoi(files[i]);
-    }
-    strcpy(ajob->argv[i], files[i]);
-  }
-  return ajob;
-}
-
 void rpc_add_job(int connection) {
-  job *ajob;
-  int num_file, i, flags[MAX_ARGUMENTS];
-  char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], temp[BUFFER_SIZE];
-  num_file = atoi(temp);
-  for(i = 0; i < num_file; i++) {
-    recv_string(connection, temp, BUFFER_SIZE-1);
+  int num_files, i, err;
+  data_size *files;
+  job *new;
+  safe_recv(connection, &num_files, sizeof(int));
+  files = malloc(sizeof(data_size)*num_files);
+  for(i = 0; i < num_files; i++) {
+    receive_file(connection, &files[i]);
   }
-  close(connection);
-  ajob = create_job(num_file, files, flags);
-  replicate(ajob);
-  add_to_queue(ajob, activeQueue); 
+  err = safe_recv(connection, new, sizeof(job));
+  if(err) problem("Recv failed\n");
+  i = get_job_id(new);
+  write_files(new, num_files, files);
+  send_meta_data(new);
+  safe_send(connection, &i, sizeof(int));
 }
 
-int verify_update(host_list *new, host_list *old) {
-  return 0;
+int send_meta_data(job *ajob) {
+  host_list_node *dest = determine_ownership(ajob);
+  
+}
+
+host_list_node *determine_ownership(job *ajob) {
+  char buffer[BUFFER_SIZE];
+  int _hash;
+  host_list_node *runner, *prev;
+  sprintf(buffer, "%d", ajob->id);
+  _hash = hash(buffer);
+  runner = server_list->head;
+  while(runner->location =< _hash) {
+    prev = runner;
+    runner = runner->next;
+  }
+  return prev;
+}
+
+int write_files(job *ajob, int num_files, data_size *files) {
+  char buffer[BUFFER_SIZE];
+  FILE *temp;
+  int i;
+  sprintf(buffer,"./jobs/%d/", ajob->id); 
+  mkdir(buffer, S_IRWXU);
+  for(i = 0; i < num_files; i++) {
+    sprints(buffer,"./jobs/%d/%s", ajob->id, files[i].name); 
+    temp = fopen(buffer, "w");
+    fwrite(files[i].data, files[i].size, 1, temp);
+  }
+}
+
+int get_job_id(job *ajob) {
+  pthread_mutex_lock(&count_mutex);
+  ajob->id = my_hostport->location + counter;
+  counter++;
+  pthread_mutex_unlock(&count_mutex);
+  return ajob->id;
+}
+
+int receive_file(int connection, data_size *file) {
+  int err;
+  err = safe_recv(connection, &(file->size), sizeof(size_t));
+  if(err) problem("Recv failed\n");
+  err = safe_recv(connection, file->data, file->size);
+  if(err) problem("Recv failed\n");
+  err = safe_recv(connection, file->name, MAX_ARGUMENT_LEN*sizeof(char));
+  if(err) problem("Recv failed\n");
 }
 
 void rpc_serve_job(int connection) {
@@ -177,6 +212,7 @@ void rpc_serve_job(int connection) {
 void send_job(job *job_to_send,int connection) {
   int err = OKAY;
   err = safe_send(connection,&job_to_send,sizeof(job));
+  
 }
 
 void rpc_receive_job_copy(int connection){

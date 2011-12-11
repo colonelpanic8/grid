@@ -1,8 +1,6 @@
 void send_identity(int connection);
 int get_servers(char *hostname, int port, int add_slots, host_list **list);
 void listen_for_connection(int *listener);
-void handle_rpc(int connection);
-char *which_rpc(int rpc);
 int send_update(int connection);
 void distribute_update();
 void listener_set_up();
@@ -12,6 +10,11 @@ int acquire_add_lock(host_list *list);
 int integrate_host(host_port *host);
 int relinquish_add_lock(host_list *list);
 int tell_to_unlock(int connection);
+
+
+//RPC
+void handle_rpc(int connection);
+char *which_rpc(int rpc);
 
 void rpc_unlock(int connection);
 void rpc_receive_announce(int connection);
@@ -28,13 +31,14 @@ void rpc_request_add_lock(int connection);
 
 
 int announce(int connection, host_port *host);
-int verify_update(host_list* new, host_list* old);
 void failure_notify(host_port *fail);
 void update_q_job_complete (int jobid, queue *Q);
 int contains(job *current, int jobid);
-job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int *flags);
 void remove_dependency(job *current, int jobid);
 void replicate(job *rep_job);
+int receive_file(int connection, data_size *file);
+int get_job_id(job *ajob);
+int write_files(job *ajob, int num_files, data_size *files);
 void copy_job(host_port *hip, job *cop_job);
 void selectHost(job *copy_job);
 void add_replica(host_port *host, job *rep_job);
@@ -44,6 +48,7 @@ void queue_setup();
 job *get_job();
 
 // linked list and host-port handling
+host_port *determine_ownership(job *ajob);
 void add_host_to_list_by_location(host_port *host, host_list *list);
 host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *where_to_add);
 void clone_host_list(host_list *old_list, host_list *new_list);
