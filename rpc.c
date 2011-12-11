@@ -113,12 +113,9 @@ void rpc_add_job(int connection) {
   job *ajob;
   int num_file, i, flags[MAX_ARGUMENTS];
   char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], temp[BUFFER_SIZE];
-  recv_string(connection, temp, BUFFER_SIZE-1);
   num_file = atoi(temp);
   for(i = 0; i < num_file; i++) {
-    recv_string(connection, files[i], BUFFER_SIZE-1);
     recv_string(connection, temp, BUFFER_SIZE-1);
-    flags[i] = atoi(temp);
   }
   close(connection);
   ajob = create_job(num_file, files, flags);
