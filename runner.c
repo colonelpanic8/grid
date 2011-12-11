@@ -32,8 +32,7 @@ int run_a_job(job *to_run) {
       if(dup2(fileno(out), STDOUT_FILENO) < 0) {
 	problem("dup2 failed, this is very bad, stdout will not be redirected!!!!!!!!!!!!!\n");
       }
-    }
-    
+    }    
     sprintf(inpath, "./jobs/%d/input.txt", to_run->id);
     in = fopen(inpath, "r");
     if(!in) {

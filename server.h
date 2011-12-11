@@ -45,7 +45,6 @@ void copy_job(host_port *hip, job *cop_job);
 void selectHost(job *copy_job);
 void add_replica(host_port *host, job *rep_job);
 void add_to_queue(job *addJob, queue *Q);
-void add_job(job *addJob);
 void queue_setup();
 job *get_job();
 

@@ -37,7 +37,6 @@ char who[INET_ADDRSTRLEN];
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   queue_setup();
-
   my_hostport = (host_port *)malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
   my_hostport->port = atoi(argv[1]);
@@ -49,7 +48,9 @@ int main(int argc, char **argv) {
     server_list = new_host_list(my_hostport);
     print_server_list();
   } else {
-    get_servers(argv[2], atoi(argv[3]), 1, &server_list);
+    if(get_servers(argv[2], atoi(argv[3]), 1, &server_list) < 0) {
+      exit(FAILURE);
+    }
     if(acquire_add_lock(server_list)) {
       problem("Fatal error. Failed to acquire add lock.\n");
       finish();
@@ -432,9 +433,14 @@ void queue_setup() {
 int get_servers(char *hostname, int port, int add_slots, host_list **list) {
   int connection = 0;
   int result = 0;
-  bulletin_make_connection_with(hostname, port, &connection);
-  int err = SEND_SERVERS;
-  safe_send(connection,&err,sizeof(int));
+  int err;
+  err = bulletin_make_connection_with(hostname, port, &connection);
+  if(err < 0) {
+    problem("Failed to connect to retrive servers");
+    return FAILURE;
+  }
+  err = SEND_SERVERS;
+  do_rpc(&err);
   result = receive_host_list(connection, list);
   close(connection);
   return result;

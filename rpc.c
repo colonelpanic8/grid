@@ -87,10 +87,15 @@ char *which_rpc(int rpc) {
 }
 
 void rpc_transfer_job(int connection) {
+  int err;
   job *incoming;
   incoming = malloc(sizeof(job));
-  safe_recv(connection, &incoming, sizeof(job));
-  add_to_queue(incoming, activeQueue); //will need to change later for dependencies
+  err = safe_recv(connection, incoming, sizeof(job));
+  if(err < 0) {
+    problem("Job transfer failed.\n");
+  } else {
+    add_to_queue(incoming, activeQueue); //will need to change later for dependencies
+  }
 }
 
 void rpc_receive_announce(int connection) {
@@ -165,9 +170,13 @@ void rpc_add_job(int connection) {
     receive_file(connection, &files[i]);
   }
   i = get_job_id(new);
-  safe_send(connection, &i, sizeof(int));
   write_files(new, num_files, files);
   send_meta_data(new);
+  safe_send(connection, &i, sizeof(int));
+  for(i = 0; i < num_files; i++) {
+    free(files[i].data);
+  }
+  free(files);
 }
 
 int send_meta_data(job *ajob) {
@@ -264,6 +273,7 @@ void rpc_inform_of_completion(int connection) {
   update_q_job_complete(jobid,backupQueue);
 }
 
+
 void rpc_inform_of_failure(int connection) {
   int err = OKAY;
   host_port *received_hp, *failed_host;
@@ -315,9 +325,4 @@ void add_to_queue(job *addJob, queue *Q) {
   n->entry = addJob;
   n->next = Q->head;
   Q->head = n;
-}
-
-void add_job(job *addJob) {
-  replicate(addJob);
-  add_to_queue(addJob, activeQueue); 
 }
