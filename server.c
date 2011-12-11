@@ -143,7 +143,7 @@ int receive_host_list(int connection, host_list **list) {
   err = safe_recv(connection, &num, sizeof(int));
   if(err < OKAY) return err;
   hosts = malloc(sizeof(host_port)*num);
-  err = safe_recv(connection, &num, sizeof(int));
+  err = safe_recv(connection, &num, sizeof(host_port)*num);
   if(err < OKAY) return err;
   
 
