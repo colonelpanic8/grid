@@ -75,7 +75,7 @@ int integrate_host(host_port *host) {
     }
     runner = runner->next;
   } while(runner != server_list->head);
-  host->location = max->location + (max_distance/2);
+  host->location = max->host->location + (max_distance/2);
   add_to_host_list(host, max);
 }
 
@@ -92,12 +92,18 @@ int acquire_add_lock(host_list *list) {
       err = bulletin_make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY) handle_host_failure(runner->host);
       err = request_add_lock(connection);
-      if (err < OKAY) return FAILURE;
+      if (err < OKAY){
+	relinquish_add_lock(list);
+	return FAILURE;
+      }
       close(connection);
       runner = runner->next;
     }
   }  while(runner != list->head);
   return OKAY;
+}
+
+int relinquish_add_lock(host_list *list) {
 }
 
 int request_add_lock(int connection) {
@@ -257,7 +263,8 @@ void handle_host_failure_by_connection(int connection) { // failed on a send
   handle_host_failure(failed_host);
 }
 
-void handle_host_failure(host_port *failed_host) { // failed on a send
+void handle_host_failure(host_port *failed_host) { // failed on a connect
+  problem("%s at %d failed\n", failed_host->ip, failed_host->location);
   local_handle_failure(failed_host);
   notify_others_of_failure(failed_host);
 }
@@ -347,11 +354,11 @@ int get_servers(char *hostname, int port, int add_slots, host_list **list) {
 int send_update(int connection) {
   int okay;
   int err = RECEIVE_UPDATE;
-  err = rpc(&err);
+  err = do_rpc(&err);
   if (err < 0) return err;
   err = send_host_list(connection, server_list);
   if (err < 0) return err;
-  err = safe_recv(connection, &list_conflict, sizeof(int));
+  err = safe_recv(connection, &okay, sizeof(int));
   if (err < 0) return err;
   if(okay) {
     problem("unsuccessful update\n");
@@ -365,7 +372,7 @@ void distribute_update() {
   current_node = server_list->head;
 
   while(current_node != NULL) {
-    if(current_node != my_hostport) {
+    if(!strcmp(current_node->host->ip, my_hostport->ip)) {
       err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
       if (err < OKAY) handle_host_failure(current_node->host);
       err = send_update(connection);

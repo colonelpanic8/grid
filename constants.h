@@ -49,6 +49,9 @@
 #define ANNOUNCE 9
 #define ANNOUNCE_S "Announce"
 
+#define UNLOCK 10
+#define UNLOCK_S "Unlock"
+
 //Job Status
 #define NOT_READY (-1)
 #define READY 0

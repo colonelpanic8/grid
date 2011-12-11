@@ -34,6 +34,9 @@ void handle_rpc(int connection) {
   case ANNOUNCE:
     rpc_receive_announce(connection);
     break;
+  case UNLOCK:
+    rpc_unlock(connection);
+    break;
   default:
     break;
   }
@@ -64,10 +67,13 @@ char *which_rpc(int rpc) {
   case REQUEST_ADD_LOCK:
     return REQUEST_ADD_LOCK_S;
   case ADD_JOB:
-    return ADD_JOB_S
+    return ADD_JOB_S;
     break;
   case ANNOUNCE:
     return ANNOUNCE_S;
+    break;
+  case UNLOCK:
+    return UNLOCK_S;
     break;
   default:
     break;
@@ -87,6 +93,9 @@ void rpc_request_add_lock(int connection) {
   }
   pthread_mutex_unlock(&d_add_mutex);
   safe_send(connection, &result, sizeof(int));
+}
+
+void rpc_unlock(int connection) {
 }
 
 void rpc_send_servers(int connection) {

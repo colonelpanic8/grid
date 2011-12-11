@@ -10,7 +10,11 @@ void print_server_list();
 void finish();
 int acquire_add_lock(host_list *list);
 int integrate_host(host_port *host);
+int relinquish_add_lock(host_list *list);
+int tell_to_unlock(int connection);
 
+void rpc_unlock(int connection);
+void rpc_receive_announce(int connection);
 void rpc_serve_job(int connection);
 void rpc_send_servers(int connection);
 void rpc_request_job(int connection); 
@@ -22,6 +26,7 @@ void rpc_receive_job_copy(int connection);
 void rpc_inform_of_failure(int connection);
 void rpc_request_add_lock(int connection);
 
+int announce(int connection);
 int verify_update(host_list* new, host_list* old);
 void failure_notify(host_port *fail);
 void update_q_job_complete (int jobid, queue *Q);
