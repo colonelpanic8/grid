@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
   listener_set_up();
 
   if(argc < 3) {
-    add_to_host_list(my_hostport, server_list);
+    server_list = new_host_list(my_hostport);
     print_server_list();
   } else {
     get_servers(argv[2], atoi(argv[3]), 1, server_list);
@@ -157,52 +157,49 @@ void free_host_list(host_list *list, int flag) {
   free(list);
 }
 
-host_list *new_host_list() {
-  host_list *newList;
-  newList = malloc(sizeof(host_list));
-  newList->head = NULL;
-  return newList;
+host_list *new_host_list(host_port *initial_host_port) {
+  host_list *new_list;
+  new_list = malloc(sizeof(host_list));
+  new_list->head = malloc(sizeof(host_list_node));
+  return new_list;
 }
 
-void add_to_host_list(host_port *added_host_port, host_list *list) {
-  host_list_node *currentNode;
-  currentNode = list->head;
-  if(!list->head) {
-    list->head = (host_list_node *)malloc(sizeof(host_list_node));
-    list->head->host = added_host_port;
-    list->head->next = NULL;
-    return;
-  }
-  while(currentNode->next) {
-    currentNode = currentNode->next;
-  }
-  currentNode->next = (host_list_node *)malloc(sizeof(host_list_node));;
-  currentNode->next->next = NULL;
-  currentNode->next->host = added_host_port;
+void add_to_host_list(host_port *added_host_port, host_list_node *where_to_add) {
+  host_list_node *new_node;
+  new_node = (host_list_node *)malloc(sizeof(host_list_node));
+  new_node->next = where_to_add->next;
+  new_node->host = added_host_port;
+  where_to_add->next = new_node;
 }
 
 void remove_from_host_list(host_port *removed_host_port, host_list *list) {
-  host_list_node *currentNode;
-  currentNode = list->head;
+  host_list_node *current_node;
+  host_list_node *node_to_remove;
   if(list->head->host == removed_host_port) {
-    list->head = list->head->next; 
-    return;
-  }
-  while(currentNode && currentNode->next->host != removed_host_port) {
-    currentNode = currentNode->next;
-  }
-  if (currentNode->next->host == removed_host_port) { 
-    currentNode->next = currentNode->next->next;
-  }
+    node_to_remove = list->head;
+    list->head = node_to_remove->next;
+    list->head->host->location = 0;
+    free(node_to_remove);
+    free(removed_host_port);
+    return;}
+  current_node = list->head;
+  do { if (current_node->next->host == removed_host_port) { 
+      node_to_remove = current_node->next;
+      current_node->next = current_node->next->next; 
+      free(node_to_remove);
+      free(removed_host_port);
+      return; }
+    current_node = current_node -> next; }
+    while(current_node != list->head) ;
 }
 
 host_port* find_host_in_list(char *hostname, host_list *list) {
   host_list_node *current_node;
   current_node = list->head;
-  while(current_node != NULL) { 
-    if (!strcmp(current_node->host->ip,hostname)) { return current_node->host; }
-     current_node = current_node->next;
-  }
+  do { 
+    if (!strcmp(current_node->host->ip,hostname)) return current_node->host;
+    current_node = current_node->next;
+  } while(current_node != list->head) ;
 }
 
 host_port* get_hostport_from_connection(int connection) {
@@ -212,14 +209,13 @@ host_port* get_hostport_from_connection(int connection) {
 }
 
 void clone_host_list(host_list *old_list, host_list *new_list) {
-  new_list = new_host_list();
-  host_list_node *new_node;
-  new_node = (host_list_node *)malloc(sizeof(host_list_node));
-  new_list->head = new_node;
+  new_list = new_host_list(old_list->head->host);
   host_list_node *old_node;
   old_node = old_list->head;
+  host_list_node *new_node;
+  new_node = new_list->head;
   host_list_node *new_successor;
-  while(old_node != NULL) { 
+  while(old_node != old_list->head) { 
     new_node->host = old_node->host;
     new_successor = (host_list_node *)malloc(sizeof(host_list_node));
     new_node->next = new_successor;
@@ -250,7 +246,7 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
   host_list_node* current_node;
   current_node = server_list->head;
 
-  while(current_node != NULL) {
+  do {
     if(strcmp(current_node->host->ip,my_hostport->ip)) {
      printf("Notifying %s and my ip is %s\n",current_node->host->ip,my_hostport->ip);
      int err;
@@ -258,7 +254,7 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
      if (err < OKAY) { handle_host_failure(current_node->host); } else { inform_of_failure(connection,failed_host); }
     }
     current_node = current_node->next;
-  }
+  } while(current_node != server_list->head);
 }
 
 void inform_of_failure(int connection, host_port *failed_host) {
@@ -273,30 +269,13 @@ void update_q_host_failed (host_port* failed_host, queue *Q) {
    job_list_node *current;
    current = Q->head;
    while(current != NULL) {
-       replace_host_in_replica_list(failed_host, current->entry);
+       fix_ownership(current);
        current = current->next;
    } 
 }
 
-void replace_host_in_replica_list(host_port* failed_host, job* job) {
-  host_list* replica_list = job->replica_list;
-  host_list* remaining_servers_list;
-  clone_host_list(server_list,remaining_servers_list);
+void fix_ownership (job_list_node *job) {
 
-  host_list_node* current_node;
-  current_node = job->replica_list->head;
-
-  while(current_node != NULL) {
-    current_node = current_node->next;
-    remove_from_host_list(current_node->host,remaining_servers_list);
-  }
-  
-  remove_from_host_list(failed_host,job->replica_list);
-
-  host_port* replacement_host;
-  replacement_host = remaining_servers_list->head->host; // not great
-  
-  if(replacement_host != NULL) { add_replica(replacement_host, job); }
 }
 
 void print_server_list() {
@@ -387,22 +366,22 @@ void listen_for_connection(int *listener) {
 }
 
 void replicate(job *rep_job) {
-  host_list_node* current_node;
-  current_node = rep_job->replica_list->head;
+//  host_list_node* current_node;
+//  current_node = rep_job->replica_list->head;
 
-  while(current_node != NULL) {
-    copy_job(current_node->host, rep_job);
-    current_node = current_node->next;
-  }
+//  while(current_node != NULL) {
+//    copy_job(current_node->host, rep_job);
+//    current_node = current_node->next;
+//  }
 }
 
 void copy_job(host_port *hip, job *cop_job) {
-  int connection = 0;
-  int err = OKAY;
-  bulletin_make_connection_with(hip->ip, hip->port, &connection);
-  send_string(connection, "4");
-  send(connection, &cop_job, sizeof(job), 0);
-  close(connection);
+//  int connection = 0;
+//  int err = OKAY;
+//  bulletin_make_connection_with(hip->ip, hip->port, &connection);
+//  send_string(connection, "4");
+//  send(connection, &cop_job, sizeof(job), 0);
+//  close(connection);
 }
 
 // void selectHost(job *copy_job) {
@@ -417,5 +396,5 @@ void copy_job(host_port *hip, job *cop_job) {
 // }
 
 void add_replica(host_port *host, job *rep_job) {
-  add_to_host_list(host,rep_job->replica_list);
+//  add_to_host_list(host,rep_job->replica_list);
 }

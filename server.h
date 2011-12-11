@@ -41,7 +41,7 @@ job *get_job();
 void clone_host_list(host_list *old_list, host_list *new_list);
 host_port* find_host_in_list(char *hostname, host_list *list);
 host_port* get_hostport_from_connection(int connection);
-void add_to_host_list(host_port *added_host_port, host_list *list);
+void add_to_host_list(host_port *added_host_port, host_list_node *where_to_add);
 host_list *new_host_list();
 void remove_from_host_list(host_port *removed_host_port, host_list *list);
 host_port* find_host_in_list(char *hostname, host_list *list);
@@ -57,3 +57,6 @@ void notify_others_of_failure(host_port *failed_host);
 void inform_of_failure(int connection, host_port *failed_host);
 void update_q_host_failed (host_port* failed_host, queue *Q);
 void replace_host_in_replica_list(host_port* failed_host, job* job);
+
+// job handling functions
+void fix_ownership (job_list_node *job);

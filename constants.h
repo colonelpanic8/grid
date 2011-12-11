@@ -71,7 +71,6 @@ typedef struct _host_list {
 typedef struct _job{
   int id, argc, status, dependent_on[MAX_ARGUMENTS];
   char argv[MAX_ARGUMENTS][MAX_ARGUMENT_LEN];
-  host_list *replica_list;
 } job;
 
 typedef struct _job_node {
