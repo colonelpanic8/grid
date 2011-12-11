@@ -1,3 +1,4 @@
+#define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
 #define problem(...)       fprintf(stderr, __VA_ARGS__)
 #define printfl(...)       printf(__VA_ARGS__); printf("\n")
 
@@ -54,8 +55,7 @@
 //runner
 
 typedef struct _host_port {
-  int port, jobs;
-  int location;
+  int port, jobs, location;
   char ip[INET_ADDRSTRLEN];
 } host_port;
 

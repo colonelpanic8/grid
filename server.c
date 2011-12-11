@@ -14,7 +14,6 @@
 #include "server.h"
 #include "hash.h"
 
-#define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
 #define LOCKED 1
 #define UNLOCKED 0
 
@@ -98,28 +97,6 @@ int acquire_add_lock(host_list *list) {
   return OKAY;
 }
 
-int send_host_list(int connection, host_list *list) {
-  int err, num;
-  host_list_node *runner;
-  runner = list->head;
-  num = 0;
-  while(runner) {
-    num++;
-    runner = runner->next;
-  }
-  
-  err = safe_send(connection, &num, sizeof(int));
-  if(err < 0) return err;
-  
-  runner = list->head;
-  while(runner) {
-    err = safe_send(connection, runner->host, sizeof(host_port));
-    if(err < 0) return err;
-    runner = runner->next;
-  }
-  return OKAY;
-}
-
 int request_add_lock(int connection) {
   int num = REQUEST_ADD_LOCK;
   do_rpc(&num);
@@ -128,24 +105,69 @@ int request_add_lock(int connection) {
   return num;
 }
 
-int receive_host_list(int connection, host_list *list) {
-  int err, num, i;
-  host_port *temp;
+int send_host_list(int connection, host_list *list) {
+  int err, num;
+  host_list_node *runner;
+  host_port *hosts;
+  runner = list->head;
   num = 0;
-  err = safe_recv(connection, &num, sizeof(int));
-  if(err < OKAY) return err;
- 
-  for(i = 0; i < num; i++) {
-    temp = malloc(sizeof(host_port));
-    err = safe_recv(connection, temp, sizeof(host_port));
-    if(err < OKAY){
-      free_host_list(list, 1);
-      return err;
-    }
-    add_to_host_list(temp, list);
+
+  //count number of hosts
+  do {
+    num++;
+    runner = runner->next;
+  } while(runner != list->head);
+  hosts = malloc(sizeof(host_port)*num);
+  runner = list->head;
+  
+  //pack the hosts into an array
+  for(err = 0; err < num; err++) {
+    host_port_copy(runner->host, &hosts[err]);
+    runner = runner->next;
   }
   
+  //send
+  err = safe_send(connection, &num, sizeof(int));
+  if(err < 0) return err;
+  err = safe_send(connection, hosts, sizeof(host_port)*num);
+  if(err < 0) return err;
+
   return OKAY;
+}
+
+int receive_host_list(int connection, host_list **list) {
+  int err, num, i;
+  host_port *hosts, *temp;
+  host_list_node *runner;
+  num = 0;
+  //size of array
+  err = safe_recv(connection, &num, sizeof(int));
+  if(err < OKAY) return err;
+  hosts = malloc(sizeof(host_port)*num);
+  err = safe_recv(connection, &num, sizeof(int));
+  if(err < OKAY) return err;
+  
+
+  //we malloc new host ports so that freeing is easy later
+  //we cant just use the memory we allocated earlier as an array
+  //or else it is impossible to free individual elements of the list
+  temp = malloc(sizeof(host_port));
+  host_port_copy(&hosts[0], temp);
+  *list = new_host_list(temp);
+  runner = (*list)->head;
+  for(i = 1; i < num; i++) {
+    temp = malloc(sizeof(host_port));
+    host_port_copy(&hosts[i], temp);
+    runner = add_to_host_list(temp, runner);
+  }
+  return OKAY;
+}
+
+void host_port_copy(host_port *src, host_port *dst) {
+  dst->jobs = src->jobs;
+  dst->port = src->port;
+  dst->location = src->location;
+  strcpy(dst->ip, src->ip);
 }
 
 void free_host_list(host_list *list, int flag) {
@@ -164,12 +186,13 @@ host_list *new_host_list(host_port *initial_host_port) {
   return new_list;
 }
 
-void add_to_host_list(host_port *added_host_port, host_list_node *where_to_add) {
+host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *where_to_add) {
   host_list_node *new_node;
   new_node = (host_list_node *)malloc(sizeof(host_list_node));
   new_node->next = where_to_add->next;
   new_node->host = added_host_port;
   where_to_add->next = new_node;
+  return new_node;
 }
 
 void remove_from_host_list(host_port *removed_host_port, host_list *list) {
@@ -306,7 +329,7 @@ int get_servers(char *hostname, int port, int add_slots, host_list *server_list)
   bulletin_make_connection_with(hostname, port, &connection);
   int err = SEND_SERVERS;
   safe_send(connection,&err,sizeof(int));
-  result = receive_host_list(connection,server_list);
+  result = receive_host_list(connection, &server_list);
   close(connection);
   return result;
 }
