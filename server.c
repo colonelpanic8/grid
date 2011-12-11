@@ -150,10 +150,10 @@ int receive_host_list(int connection, host_list *list) {
 
 void free_host_list(host_list *list, int flag) {
   host_list_node *runner = list->head;
-  while(runner) {
+  do {
     if(runner->host && flag) free(runner->host);
     runner = runner->next;
-  }
+  } while(runner != list->head) ;
   free(list);
 }
 
@@ -282,10 +282,10 @@ void print_server_list() {
   host_list_node* current_node;
   printf("Servers:\n");
   current_node = server_list->head;
-  while(current_node != NULL) {
+  do {
     printf("\tIP: %s, port: %d\n", current_node->host->ip, current_node->host->port);
     current_node = current_node->next;
-  }
+  } while(current_node != server_list->head);
 }
 
 job *get_job() {
