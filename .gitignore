@@ -1,5 +1,5 @@
 server
-bulletin.o
-server.o
-client.o
+*.o
 client
+.#*
+#*

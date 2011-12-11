@@ -32,12 +32,13 @@ int run_a_job(job *to_run) {
     sprintf(inpath, "./jobs/%d/input.txt", to_run->id);
     in = fopen(inpath, "r");
     if(!in) {
-      problem("output file failed to open, this is very bad std in will not be redirected!!!!!!\n");
+      problem("input file failed to open, this is very bad std in will not be redirected!!!!!!\n");
       if(dup2(fileno(out), STDIN_FILENO) < 0) {
 	problem("dup2 failed, this is very bad, stdin will not be redirected!!!!!!!!!!!!!\n");
       }
     }
     execvp(to_run->input_files[0], to_run->input_files);
+    problem("Fatal error for job %d, with name %s - execvp failed to run");
     return FAILURE;
   }
   wait(NULL);
