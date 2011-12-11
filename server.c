@@ -142,6 +142,19 @@ int request_add_lock(int connection) {
 }
 
 int transfer_job(host_port *host, job *to_send) {
+  int connection, err;
+  err = bulletin_make_connection_with(host->ip, host->port, &connection);
+  if (err < OKAY) {
+    handle_host_failure(host);
+    return FAILURE;
+  }
+  err = TRANSFER_JOB;
+  do_rpc(&err);
+  err = safe_send(connection, to_send, sizeof(job));
+  if (err < OKAY) {
+    handle_host_failure(host);
+    return FAILURE;
+  }
   return 0;
 }
 
