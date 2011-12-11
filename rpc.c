@@ -155,13 +155,15 @@ void rpc_add_job(int connection) {
   int num_files, i, err;
   data_size *files;
   job *new;
+  new = malloc(sizeof(job));
+  err = safe_recv(connection, new, sizeof(job));
+  if(err < 0) problem("Recv job failed, %d\n",err);
+  
   safe_recv(connection, &num_files, sizeof(int));
   files = malloc(sizeof(data_size)*num_files);
   for(i = 0; i < num_files; i++) {
     receive_file(connection, &files[i]);
   }
-  err = safe_recv(connection, new, sizeof(job));
-  if(err) problem("Recv failed\n");
   i = get_job_id(new);
   write_files(new, num_files, files);
   send_meta_data(new);
@@ -195,7 +197,7 @@ int write_files(job *ajob, int num_files, data_size *files) {
   sprintf(buffer,"./jobs/%d/", ajob->id); 
   mkdir(buffer, S_IRWXU);
   for(i = 0; i < num_files; i++) {
-    sprintf(buffer,"./jobs/%d/%s", ajob->id, files[i].name); 
+    sprintf(buffer,"%s", files[i].name); 
     temp = fopen(buffer, "w");
     fwrite(files[i].data, files[i].size, 1, temp);
   }
@@ -212,11 +214,11 @@ int get_job_id(job *ajob) {
 int receive_file(int connection, data_size *file) {
   int err;
   err = safe_recv(connection, &(file->size), sizeof(size_t));
-  if(err) problem("Recv failed\n");
+  if(err < 0) problem("Recv failed size\n");
   err = safe_recv(connection, file->data, file->size);
-  if(err) problem("Recv failed\n");
+  if(err < 0) problem("Recv failed data\n");
   err = safe_recv(connection, file->name, MAX_ARGUMENT_LEN*sizeof(char));
-  if(err) problem("Recv failed\n");
+  if(err < 0) problem("Recv failed name\n");
 }
 
 void rpc_serve_job(int connection) {

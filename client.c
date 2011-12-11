@@ -24,19 +24,19 @@ int submit_job_to_server(char *host, int port, job *to_send, data_size *files, i
   }
   i = ADD_JOB;
   do_rpc(&i);
-  safe_send(connection, &num_files, sizeof(int));
 
+  err = safe_send(connection, to_send, sizeof(job));
+  if(err < 0) problem("Send job failed, %d\n", err);
+  
+  safe_send(connection, &num_files, sizeof(int));
   for(i = 0; i < num_files; i++) {
     err = safe_send(connection, &(files[i].size), sizeof(size_t));
-    if(err) problem("Send failed\n");
+    if(err < 0) problem("Send failed size\n");
     err = safe_send(connection, files[i].data, files[i].size);
-    if(err) problem("Send failed\n");
+    if(err < 0) problem("Send failed data\n");
     err = safe_send(connection, files[i].name, MAX_ARGUMENT_LEN*sizeof(char));
-    if(err) problem("Send failed\n");
+    if(err < 0) problem("Send failed name\n");
   }
-  
-  err = safe_send(connection, to_send, sizeof(job));
-  if(err) problem("Send failed\n");
   safe_recv(connection, &i, sizeof(int));
   return i;
 }
