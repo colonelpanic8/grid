@@ -27,6 +27,8 @@ void handle_rpc(int connection) {
     break;
   case REQUEST_ADD_LOCK:
     rpc_request_add_lock(connection);
+  case ADD_JOB:
+    rpc_add_job(connection);
   default:
     break;
   }
@@ -80,9 +82,8 @@ void rpc_send_servers(int connection) {
 
 void rpc_receive_update(int connection){
   host_list *new;
-  new = new_host_list();
   int err;
-  err = receive_host_list(connection, new);
+  err = receive_host_list(connection, &new);
   if(err < 0) return; //Fix?
   if(verify_update(new, server_list)) {
     err = FAILURE;

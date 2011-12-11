@@ -41,13 +41,14 @@ job *get_job();
 void clone_host_list(host_list *old_list, host_list *new_list);
 host_port* find_host_in_list(char *hostname, host_list *list);
 host_port* get_hostport_from_connection(int connection);
-void add_to_host_list(host_port *added_host_port, host_list_node *where_to_add);
+host_list_node* add_to_host_list(host_port *added_host_port, host_list_node *where_to_add);
 host_list *new_host_list();
 void remove_from_host_list(host_port *removed_host_port, host_list *list);
 host_port* find_host_in_list(char *hostname, host_list *list);
-int receive_host_list(int connection, host_list *list);
+int receive_host_list(int connection, host_list **list);
 void free_host_list(host_list *list, int flag);
 int send_host_list(int connection, host_list *list);
+void host_port_copy(host_port *src, host_port *dst);
 
 // failure functions
 void handle_host_failure_by_connection(int connection);
