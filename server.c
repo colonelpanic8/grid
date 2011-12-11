@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     server_list = new_host_list(my_hostport);
     print_server_list();
   } else {
-    get_servers(argv[2], atoi(argv[3]), 1, server_list);
+    get_servers(argv[2], atoi(argv[3]), 1, &server_list);
     if(acquire_add_lock(server_list)) {
       problem("Fatal error. Failed to acquire add lock.\n");
       finish();
@@ -330,13 +330,13 @@ void queue_setup() {
   backupQueue->head = NULL;
 }
 
-int get_servers(char *hostname, int port, int add_slots, host_list *server_list) {
+int get_servers(char *hostname, int port, int add_slots, host_list **list) {
   int connection = 0;
   int result = 0;
   bulletin_make_connection_with(hostname, port, &connection);
   int err = SEND_SERVERS;
   safe_send(connection,&err,sizeof(int));
-  result = receive_host_list(connection, &server_list);
+  result = receive_host_list(connection, list);
   close(connection);
   return result;
 }
