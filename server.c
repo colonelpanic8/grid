@@ -32,7 +32,6 @@ char who[INET_ADDRSTRLEN];
 
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
-  server_list = new_host_list();
   queue_setup();
 
   my_hostport = (host_port *)malloc(sizeof(host_port));
@@ -172,10 +171,10 @@ void host_port_copy(host_port *src, host_port *dst) {
 
 void free_host_list(host_list *list, int flag) {
   host_list_node *runner = list->head;
-  while(runner) {
+  do {
     if(runner->host && flag) free(runner->host);
     runner = runner->next;
-  }
+  } while(runner != list->head) ;
   free(list);
 }
 
@@ -183,6 +182,7 @@ host_list *new_host_list(host_port *initial_host_port) {
   host_list *new_list;
   new_list = malloc(sizeof(host_list));
   new_list->head = malloc(sizeof(host_list_node));
+  new_list->head->host = initial_host_port;
   return new_list;
 }
 
@@ -305,10 +305,10 @@ void print_server_list() {
   host_list_node* current_node;
   printf("Servers:\n");
   current_node = server_list->head;
-  while(current_node != NULL) {
+  do {
     printf("\tIP: %s, port: %d\n", current_node->host->ip, current_node->host->port);
     current_node = current_node->next;
-  }
+  } while(current_node != server_list->head);
 }
 
 job *get_job() {
