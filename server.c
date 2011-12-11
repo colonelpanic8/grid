@@ -50,7 +50,8 @@ int main(int argc, char **argv) {
       finish();
       exit(-1);
     }
-    integrate_host(my_hostport);
+    //integrate_host(my_hostport);
+    add_to_host_list(my_hostport, server_list);
     print_server_list();
     distribute_update();
   }
@@ -61,6 +62,7 @@ int main(int argc, char **argv) {
 }
 
 int integrate_host(host_port *host) {
+  /*
   host_list_node *runner, *max;
   int max_distance, dist;
   max_distance = 0;
@@ -72,11 +74,9 @@ int integrate_host(host_port *host) {
       max_distance = dist;
     }
     runner = runner->next;
-  }
-  
+    }*/
 }
-    
-}
+
 
 void finish() {
 }
@@ -90,7 +90,6 @@ int send_host_list(int connection, host_list *list) {
   host_list_node *runner;
   runner = list->head;
   num = 0;
-c  
   while(runner) {
     num++;
     runner = runner->next;
@@ -172,10 +171,16 @@ void add_to_host_list(host_port *added_host_port, host_list *list) {
 void remove_from_host_list(host_port *removed_host_port, host_list *list) {
   host_list_node *currentNode;
   currentNode = list->head;
-  if(list->head->host == removed_host_port) {list->head = list->head->next; return;}
-  while(currentNode != NULL & currentNode->next->host != removed_host_port)
-    { currentNode = currentNode -> next; }
-  if (currentNode->next->host == removed_host_port) { currentNode->next = currentNode->next->next; }
+  if(list->head->host == removed_host_port) {
+    list->head = list->head->next; 
+    return;
+  }
+  while(currentNode && currentNode->next->host != removed_host_port) {
+    currentNode = currentNode->next;
+  }
+  if (currentNode->next->host == removed_host_port) { 
+    currentNode->next = currentNode->next->next;
+  }
 }
 
 host_port* find_host_in_list(char *hostname, host_list *list) {

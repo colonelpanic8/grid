@@ -43,7 +43,7 @@ int run_a_job(job *to_run) {
       }
     }
     execvp(argv[0], argv);
-    problem("Fatal error for job %d, with name %s - execvp failed to run");
+    problem("Fatal error for job %d, with name - execvp failed to run", to_run->id);
     return FAILURE;
   }
   wait(NULL);
