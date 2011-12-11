@@ -9,9 +9,14 @@
 #include "runner.h"
 
 int run_a_job(job *to_run) {
-  int forkint, err;
+  int forkint, err, i;
   FILE *out, *in;
   char outpath[BUFFER_SIZE], inpath[BUFFER_SIZE];
+  char **argv;
+  argv = malloc(sizeof(char)*to_run->argc);
+  for(i = 0; i < to_run->argc; i++) {
+    argv[i] = to_run->argv[i];
+  }
   
   if(forkint = fork()) {
     if(forkint < 0) {
@@ -37,7 +42,7 @@ int run_a_job(job *to_run) {
 	problem("dup2 failed, this is very bad, stdin will not be redirected!!!!!!!!!!!!!\n");
       }
     }
-    execvp(to_run->input_files[0], to_run->input_files);
+    execvp(argv[0], argv);
     problem("Fatal error for job %d, with name %s - execvp failed to run");
     return FAILURE;
   }

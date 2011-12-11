@@ -4,7 +4,7 @@ void handle_rpc(int connection) {
   get_ip(connection, host);
   safe_recv(connection, &rpc, sizeof(rpc));
   printf(BAR);
-  printf("RPC %d from %s\n", rpc, host);
+  printf("RPC %s from %s\n", which_rpc(rpc), host);
   printf(BAR);
   switch(rpc) {
   case SEND_SERVERS:
@@ -25,11 +25,52 @@ void handle_rpc(int connection) {
   case INFORM_OF_FAILURE:
     rpc_inform_of_failure(connection);
     break;
+  case REQUEST_ADD_LOCK:
+    rpc_request_add_lock(connection);
   default:
     break;
   }
   close(connection);
   print_server_list();
+}
+
+char *which_rpc(int rpc) {
+  switch(rpc) {
+  case SEND_SERVERS:
+    return SEND_SERVERS_S;
+    break;
+  case SERVE_JOB:
+    return SERVE_JOB_S;
+    break;
+  case JOB_COMPLETE:
+    return JOB_COMPLETE_S;
+    break;
+  case RECEIVE_UPDATE:
+    return RECEIVE_UPDATE_S;
+    break;
+  case RECEIVE_JOB_COPY:
+    return RECEIVE_JOB_COPY_S;
+    break;
+  case INFORM_OF_FAILURE:
+    return INFORM_OF_FAILURE_S;
+    break;
+  case REQUEST_ADD_LOCK:
+    return REQUEST_ADD_LOCK_S;
+  default:
+    break;
+  }
+}
+
+void rpc_request_add_lock(int connection) {
+  int result = FAILURE;
+  pthread_mutex_lock(&d_add_mutex);
+  if(!d_add_lock) {
+    d_add_lock = LOCKED;
+    get_ip(connection, who);
+    result = OKAY;
+  }
+  pthread_mutex_unlock(&d_add_mutex);
+  safe_send(connection, &result, sizeof(int));
 }
 
 void rpc_send_servers(int connection) {
@@ -63,7 +104,7 @@ job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int 
     if(flags[i]) {
       ajob->dependent_on[i] = atoi(files[i]);
     }
-    strcpy(ajob->input_files[i], files[i]);
+    strcpy(ajob->argv[i], files[i]);
   }
   return ajob;
 }
@@ -121,7 +162,7 @@ void update_q_job_complete (int jobid, queue *Q) {
    while(current != NULL) {
        if (contains(current->entry, jobid)) {
 	 remove_dependency(current->entry, jobid);
-         check_avail(current->entry);
+         //check_avail(current->entry);
        }
        current = current->next;
    } 
@@ -129,26 +170,17 @@ void update_q_job_complete (int jobid, queue *Q) {
 
 int contains(job *current, int jobid) {
   int i = 0;
-  while (i < current->number_inputs) {
+  while (i < current->argc) {
     if (jobid == current->dependent_on[i]) return 1;
     i++;
   }
   return 0;
 }
 
-void check_avail(job *current) {
-  int i = 0;
-  int flag = 0;
-  while (i < current->number_inputs && flag != 1) {
-    if (current->dependent_on[i] != 0) flag = 1;
-    i++;
-  }
-  if (flag == 0) current->inputs_available = 1;
-}
 
 void remove_dependency(job *current, int jobid) {
   int i = 0;
-  while (i < current->number_inputs) {
+  while (i < current->argc) {
     if (jobid == current->dependent_on[i]) {
       current->dependent_on[i] = 0;
       break;

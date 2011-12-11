@@ -13,12 +13,20 @@
 #include "constants.h"
 #include "server.h"
 
+#define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
+#define LOCKED 1
+#define UNLOCKED 0
+
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list;
 int num_servers;
 host_port *my_hostport;
 queue *activeQueue;
 queue *backupQueue;
+
+pthread_mutex_t d_add_mutex = PTHREAD_MUTEX_INITIALIZER;
+int d_add_lock = UNLOCKED;
+char who[INET_ADDRSTRLEN];
 
 #include "rpc.c"
 
@@ -68,6 +76,14 @@ int send_host_list(int connection, host_list *list) {
     runner = runner->next;
   }
   return OKAY;
+}
+
+int request_add_lock(int connection) {
+  int num = REQUEST_ADD_LOCK;
+  do_rpc(&num);
+  num = FAILURE;
+  safe_recv(connection, &num, sizeof(int));
+  return num;
 }
 
 int receive_host_list(int connection, host_list *list) {
