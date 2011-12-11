@@ -33,7 +33,6 @@ char who[INET_ADDRSTRLEN];
 
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
-  server_list = new_host_list();
   queue_setup();
 
   my_hostport = (host_port *)malloc(sizeof(host_port));
@@ -161,6 +160,7 @@ host_list *new_host_list(host_port *initial_host_port) {
   host_list *new_list;
   new_list = malloc(sizeof(host_list));
   new_list->head = malloc(sizeof(host_list_node));
+  new_list->head->host = initial_host_port;
   return new_list;
 }
 
