@@ -96,6 +96,16 @@ void rpc_request_add_lock(int connection) {
 }
 
 void rpc_unlock(int connection) {
+  int result = FAILURE;
+  char ip[INET_ADDRSTRLEN];
+  get_ip(connection, ip);
+  pthread_mutex_lock(&d_add_mutex);
+  if(!strcmp(who, ip)) {
+    d_add_lock = UNLOCKED;
+    result = OKAY;
+  }
+  pthread_mutex_unlock(&d_add_mutex);
+  safe_send(connection, &result, sizeof(int));
 }
 
 void rpc_send_servers(int connection) {
@@ -107,8 +117,12 @@ void rpc_receive_update(int connection){
   host_list *old = server_list;
   int err;
   err = receive_host_list(connection, &server_list);
-  if(err < 0) return; //Fix?
-  
+  if(err < 0) { 
+    problem("Receive Update failed\n");
+    return; //Fix?
+  }
+  err = OKAY;
+  safe_send(connection, &err, sizeof(int));
 }
 
 job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int *flags){

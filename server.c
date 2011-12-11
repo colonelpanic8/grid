@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
     integrate_host(my_hostport);
     print_server_list();
     distribute_update();
+    relinquish_add_lock(server_list);
   }
   // initialize queue 
   while(1) { 
@@ -104,6 +105,28 @@ int acquire_add_lock(host_list *list) {
 }
 
 int relinquish_add_lock(host_list *list) {
+  int err, connection;
+  host_list_node *runner;
+  runner = list->head;
+  do {
+    if(runner->host != my_hostport) { //possibly needs to be changed give the current update structure
+      //consider changing updates to work by sending only the identity of the current node?
+      err = bulletin_make_connection_with(runner->host->ip, runner->host->port, &connection);
+      if (err < OKAY) handle_host_failure(runner->host);
+      err = tell_to_unlock(connection);
+      close(connection);
+    }
+    runner = runner->next;
+  }  while(runner != list->head);
+  return OKAY;
+}
+
+int tell_to_unlock(int connection) {
+  int num = UNLOCK;
+  do_rpc(&num);
+  num = FAILURE;
+  safe_recv(connection, &num, sizeof(int));
+  return num;
 }
 
 int request_add_lock(int connection) {
@@ -112,6 +135,38 @@ int request_add_lock(int connection) {
   num = FAILURE;
   safe_recv(connection, &num, sizeof(int));
   return num;
+}
+
+int send_update(int connection) {
+  int okay;
+  int err = RECEIVE_UPDATE;
+  err = do_rpc(&err);
+  if (err < 0) return err;
+  err = send_host_list(connection, server_list);
+  if (err < 0) return err;
+  err = safe_recv(connection, &okay, sizeof(int));
+  if (err < 0) return err;
+  if(okay) {
+    problem("unsuccessful update\n");
+  }
+}
+
+void distribute_update() {
+  int err;
+  int connection;
+  host_list_node* current_node;
+  current_node = server_list->head;
+
+  do {
+    if(strcmp(current_node->host->ip, my_hostport->ip)) {
+      err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
+      if (err < OKAY) handle_host_failure(current_node->host);
+      err = send_update(connection);
+      if (err < OKAY) handle_host_failure_by_connection(connection);
+      close(connection);
+    }
+    current_node = current_node->next;
+  } while(current_node != server_list->head);
 }
 
 int send_host_list(int connection, host_list *list) {
@@ -349,38 +404,6 @@ int get_servers(char *hostname, int port, int add_slots, host_list **list) {
   result = receive_host_list(connection, list);
   close(connection);
   return result;
-}
-
-int send_update(int connection) {
-  int okay;
-  int err = RECEIVE_UPDATE;
-  err = do_rpc(&err);
-  if (err < 0) return err;
-  err = send_host_list(connection, server_list);
-  if (err < 0) return err;
-  err = safe_recv(connection, &okay, sizeof(int));
-  if (err < 0) return err;
-  if(okay) {
-    problem("unsuccessful update\n");
-  }
-}
-
-void distribute_update() {
-  int err;
-  int connection;
-  host_list_node* current_node;
-  current_node = server_list->head;
-
-  while(current_node != NULL) {
-    if(!strcmp(current_node->host->ip, my_hostport->ip)) {
-      err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
-      if (err < OKAY) handle_host_failure(current_node->host);
-      err = send_update(connection);
-      if (err < OKAY) handle_host_failure_by_connection(connection);
-      close(connection);
-      current_node = current_node->next;
-    }
-  }
 }
 
 void listener_set_up() {
