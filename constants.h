@@ -14,19 +14,45 @@
 #define RECEIVER_ERROR (-6)
 
 #define OKAY 0
-#define FAILURE -1 
+#define FAILURE (-1)
 
 
 //RPCs
 #define SEND_SERVERS 0
+#define SEND_SERVERS_S "Send Servers"
+
 #define RECEIVE_UPDATE 1
+#define RECEIVE_UPDATE_S "Receive Update"
+
 #define SERVE_JOB 2
+#define SERVE_JOB_S "Serve Job"
+
 #define JOB_COMPLETE 3
+#define JOB_COMPLETE_S "Job Complete"
+
 #define RECEIVE_JOB_COPY 4
+#define RECEIVE_JOB_COPY_S "Receive Job Copy"
+
 #define INFORM_OF_FAILURE 5
+#define INFORM_OF_FAILURE_S "Inform of Failure"
+
+#define REQUEST_ADD_LOCK 6
+#define REQUEST_ADD_LOCK_S "Request Add Lock"
+
+#define RECEIVE_IDENTITY 7
+#define RECEIVE_IDENTITY_S "Receive Identity"
+
+//Job Status
+#define NOT_READY (-1)
+#define READY 0
+#define RUNNING 1
+#define COMPLETED 2
+
+//runner
 
 typedef struct _host_port {
-  int port;
+  int port, jobs;
+  unsigned long location;
   char ip[INET_ADDRSTRLEN];
 } host_port;
 
@@ -40,18 +66,18 @@ typedef struct _host_list {
 } host_list;
 
 typedef struct _job{
-  int id, number_inputs, dependent_on[MAX_ARGUMENTS];
-  char input_files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], *outputFile;
+  int id, argc, status, dependent_on[MAX_ARGUMENTS];
+  char argv[MAX_ARGUMENTS][MAX_ARGUMENT_LEN];
   host_list *replica_list;
-  int inputs_available;
 } job;
 
-typedef struct _node_j {
-  job *obj; 
-  struct _node_j *next;
-} node_j;
+typedef struct _job_node {
+  job *entry;
+  struct _job_node *next;
+  pthread_mutex_t lock;
+} job_list_node;
 
 typedef struct _queue{
-  node_j *head; 
-//  node_j *tail;
+  job_list_node *head; 
+  //job_node *tail;
 } queue;
