@@ -289,7 +289,13 @@ void print_server_list() {
 }
 
 job *get_job() {
-  return NULL;
+  job_list_node *current_node;
+  current_node = activeQueue->head;
+  while (current_node && current_node->entry->status != READY) {
+     current_node = current_node->next;
+   }
+  current_node->entry->status = RUNNING;
+  return current_node->entry;
 }
 
 
