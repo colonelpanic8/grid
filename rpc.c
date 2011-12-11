@@ -81,6 +81,19 @@ char *which_rpc(int rpc) {
 }
 
 void rpc_receive_announce(int connection) {
+  int status;
+  host_port *incoming;
+  incoming = malloc(sizeof(host_port));
+  status = safe_recv(connection, incoming, sizeof(host_port));
+  add_host_to_list_by_location(incoming, server_list);
+}
+
+void add_host_to_list_by_location(host_port *host, host_list *list) {
+  host_list_node *runner = list->head;
+  while(runner->next->host->location < host->location) {
+    runner = runner->next;
+  }
+  add_to_host_list(host, runner);
 }
 
 void rpc_request_add_lock(int connection) {

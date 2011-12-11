@@ -137,6 +137,18 @@ int request_add_lock(int connection) {
   return num;
 }
 
+int announce(int connection, host_port *send) {
+  int status = ANNOUNCE;
+  status = do_rpc(&status);
+  if(status){
+    handle_host_failure_by_connection(connection);
+    return status;
+  }
+  status = safe_send(connection, send, sizeof(host_port));
+  if(status) handle_host_failure_by_connection(connection);
+  return status;
+}
+
 int send_update(int connection) {
   int okay;
   int err = RECEIVE_UPDATE;
@@ -372,7 +384,8 @@ void print_server_list() {
   printf("Servers:\n");
   current_node = server_list->head;
   do {
-    printf("\tIP: %s, port: %d\n", current_node->host->ip, current_node->host->port);
+    printf("\tIP: %s, port: %d, location: %d\n",
+	   current_node->host->ip, current_node->host->port, current_node->host->location);
     current_node = current_node->next;
   } while(current_node != server_list->head);
 }
