@@ -28,6 +28,7 @@ void rpc_receive_update(int connection);
 void rpc_receive_job_copy(int connection);
 void rpc_inform_of_failure(int connection);
 void rpc_request_add_lock(int connection);
+void rpc_transfer_job(int connection);
 
 
 int announce(int connection, host_port *host);
@@ -48,7 +49,7 @@ void queue_setup();
 job *get_job();
 
 // linked list and host-port handling
-host_port *determine_ownership(job *ajob);
+host_list_node *determine_ownership(job *ajob);
 void add_host_to_list_by_location(host_port *host, host_list *list);
 host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *where_to_add);
 void clone_host_list(host_list *old_list, host_list *new_list);

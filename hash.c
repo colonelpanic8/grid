@@ -8,7 +8,7 @@ unsigned long sdbm(unsigned char *str) {
   return hash;
 }
 
-int hash(unsigned char *str) {
+unsigned int hash(unsigned char *str) {
   return (int)(sdbm(str) % HASH_SPACE_SIZE);
 }
 

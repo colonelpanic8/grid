@@ -14,10 +14,10 @@
 #include "client.h"
 
 
-void submit_job_to_server(host_port host, job *to_send, data_size *files, int num_files) {
+int submit_job_to_server(char *host, int port, job *to_send, data_size *files, int num_files) {
   int connection, i, err;
   char ip[INET_ADDRSTRLEN];
-  i = bulletin_make_connection_with(host->host, host->port, &connection);
+  i = bulletin_make_connection_with(host, port, &connection);
   if(i < 0) {
     problem("Connection to server failed\n");
     exit(-1);
@@ -29,29 +29,37 @@ void submit_job_to_server(host_port host, job *to_send, data_size *files, int nu
   for(i = 0; i < num_files; i++) {
     err = safe_send(connection, &(files[i].size), sizeof(size_t));
     if(err) problem("Send failed\n");
-    err = safe_send(connection, files[i]->data, size);
+    err = safe_send(connection, files[i].data, files[i].size);
     if(err) problem("Send failed\n");
-    err = safe_send(connection, files[i]->name, MAX_ARGUMENT_LEN*sizeof(char));
+    err = safe_send(connection, files[i].name, MAX_ARGUMENT_LEN*sizeof(char));
     if(err) problem("Send failed\n");
   }
   
   err = safe_send(connection, to_send, sizeof(job));
   if(err) problem("Send failed\n");
   safe_recv(connection, &i, sizeof(int));
-  report_results(i);
+  return i;
 }
 
-int get_file_into_memory(FILE *file, data_size *location) {
+int get_file_into_memory(char *name, data_size *location) {
+  FILE *file;
+  int result;
+  file = fopen(name, "r");
+  if(!file) {
+    problem("File did not open\n");
+    return FAILURE;
+  }
   fseek(file , 0, SEEK_END);
-  location->size = ftell(pFile);
-  rewind(pFile);
+  location->size = ftell(file);
+  rewind(file);
   
-  location->data = (char*) malloc(sizeof(char)*lSize);
-  if (location->data == NULL) {fputs ("Memory error",stderr); exit (2);}
+  location->data = (char*) malloc(sizeof(char)*location->size);
+  if (location->data == NULL) {fputs("Memory error",stderr); exit (2);}
   
   // copy the file into the buffer:
   result = fread(location->data,1,location->size,file);
   if (result !=location->size ) {fputs ("Reading error",stderr); exit (3);}
+  strcpy(location->name, name);
   return OKAY;
 }
 

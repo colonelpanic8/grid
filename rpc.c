@@ -37,6 +37,9 @@ void handle_rpc(int connection) {
   case UNLOCK:
     rpc_unlock(connection);
     break;
+  case TRANSFER_JOB:
+    rpc_transfer_job(connection);
+    break;
   default:
     break;
   }
@@ -75,9 +78,19 @@ char *which_rpc(int rpc) {
   case UNLOCK:
     return UNLOCK_S;
     break;
+  case TRANSFER_JOB:
+    return TRANSFER_JOB_S;
+    break;
   default:
     break;
   }
+}
+
+void rpc_transfer_job(int connection) {
+  job *incoming;
+  incoming = malloc(sizeof(job));
+  safe_recv(connection, &incoming, sizeof(job));
+  add_to_queue(incoming, activeQueue); //will need to change later for dependencies
 }
 
 void rpc_receive_announce(int connection) {
@@ -158,6 +171,7 @@ void rpc_add_job(int connection) {
 int send_meta_data(job *ajob) {
   host_list_node *dest = determine_ownership(ajob);
   
+  
 }
 
 host_list_node *determine_ownership(job *ajob) {
@@ -167,7 +181,7 @@ host_list_node *determine_ownership(job *ajob) {
   sprintf(buffer, "%d", ajob->id);
   _hash = hash(buffer);
   runner = server_list->head;
-  while(runner->location =< _hash) {
+  while(runner->host->location <= _hash) {
     prev = runner;
     runner = runner->next;
   }
@@ -181,7 +195,7 @@ int write_files(job *ajob, int num_files, data_size *files) {
   sprintf(buffer,"./jobs/%d/", ajob->id); 
   mkdir(buffer, S_IRWXU);
   for(i = 0; i < num_files; i++) {
-    sprints(buffer,"./jobs/%d/%s", ajob->id, files[i].name); 
+    sprintf(buffer,"./jobs/%d/%s", ajob->id, files[i].name); 
     temp = fopen(buffer, "w");
     fwrite(files[i].data, files[i].size, 1, temp);
   }
