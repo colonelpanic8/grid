@@ -7,6 +7,9 @@ int send_update(int connection);
 void distribute_update();
 void listener_set_up();
 void print_server_list();
+void finish();
+void acquire_add_lock();
+int integrate_host(host_port *host);
 
 void rpc_serve_job(int connection);
 void rpc_send_servers(int connection);

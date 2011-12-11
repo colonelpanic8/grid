@@ -52,7 +52,7 @@
 
 typedef struct _host_port {
   int port, jobs;
-  unsigned long location;
+  int location;
   char ip[INET_ADDRSTRLEN];
 } host_port;
 

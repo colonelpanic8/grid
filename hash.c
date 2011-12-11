@@ -1,4 +1,4 @@
-#define HASH_SPACE_SIZE 1000000
+#define HASH_SPACE_SIZE 16777216
 
 #include "hash.h"
 
@@ -10,6 +10,10 @@ unsigned long sdbm(unsigned char *str) {
   return hash;
 }
 
-unsigned long distance(unsigned long a, unsigned long b) {
+int hash(unsigned char *str) {
+  return (int)(sdbm(str) % HASH_SPACE_SIZE);
+}
+
+int distance(unsigned long a, unsigned long b) {
   return abs(a-b);
 }
