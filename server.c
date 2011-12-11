@@ -45,7 +45,12 @@ int main(int argc, char **argv) {
     print_server_list();
   } else {
     get_servers(argv[2], atoi(argv[3]), 1, server_list);
-    add_to_host_list(my_hostport,server_list);
+    if(acquire_add_lock()) {
+      problem("Fatal error. Failed to acquire add lock.\n");
+      finish();
+      exit(-1);
+    }
+    integrate_host(my_hostport);
     print_server_list();
     distribute_update();
   }
@@ -55,12 +60,37 @@ int main(int argc, char **argv) {
   } 
 }
 
+int integrate_host(host_port *host) {
+  host_list_node *runner, *max;
+  int max_distance, dist;
+  max_distance = 0;
+  runner = server_list->head;
+  while(runner & runner->next) {
+    dist = abs(runner->host->location - runner->next->host->location);
+    if(max_distance < dist) {
+      max = runner;
+      max_distance = dist;
+    }
+    runner = runner->next;
+  }
+  
+}
+    
+}
+
+void finish() {
+}
+
+int acquire_add_lock() {
+  return OKAY;
+}
+
 int send_host_list(int connection, host_list *list) {
   int err, num;
   host_list_node *runner;
   runner = list->head;
   num = 0;
-  
+c  
   while(runner) {
     num++;
     runner = runner->next;
@@ -203,11 +233,11 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
   current_node = server_list->head;
 
   while(current_node != NULL) {
-   if(strcmp(current_node->host->ip,my_hostport->ip)) {
-    printf("Notifying %s and my ip is %s\n",current_node->host->ip,my_hostport->ip);
-    int err;
-    err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
-    if (err < OKAY) { handle_host_failure(current_node->host); } else { inform_of_failure(connection,failed_host); }
+    if(strcmp(current_node->host->ip,my_hostport->ip)) {
+     printf("Notifying %s and my ip is %s\n",current_node->host->ip,my_hostport->ip);
+     int err;
+     err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
+     if (err < OKAY) { handle_host_failure(current_node->host); } else { inform_of_failure(connection,failed_host); }
     }
     current_node = current_node->next;
   }
@@ -370,8 +400,4 @@ void copy_job(host_port *hip, job *cop_job) {
 
 void add_replica(host_port *host, job *rep_job) {
   add_to_host_list(host,rep_job->replica_list);
-}
-
-void realloc_servers_list() {
-  
 }
