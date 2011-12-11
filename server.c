@@ -141,6 +141,10 @@ int request_add_lock(int connection) {
   return num;
 }
 
+int transfer_job(host_port *host, job *to_send) {
+  return 0;
+}
+
 int announce(int connection, host_port *send) {
   int status = ANNOUNCE;
   status = do_rpc(&status);

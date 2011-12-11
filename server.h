@@ -31,6 +31,7 @@ void rpc_request_add_lock(int connection);
 void rpc_transfer_job(int connection);
 
 
+int transfer_job(host_port *host, job *to_send);
 int announce(int connection, host_port *host);
 void failure_notify(host_port *fail);
 void update_q_job_complete (int jobid, queue *Q);

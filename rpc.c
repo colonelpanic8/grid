@@ -165,15 +165,18 @@ void rpc_add_job(int connection) {
     receive_file(connection, &files[i]);
   }
   i = get_job_id(new);
+  safe_send(connection, &i, sizeof(int));
   write_files(new, num_files, files);
   send_meta_data(new);
-  safe_send(connection, &i, sizeof(int));
 }
 
 int send_meta_data(job *ajob) {
   host_list_node *dest = determine_ownership(ajob);
-  
-  
+  if(dest->host == my_hostport) {
+    
+  } else {
+    transfer_job(dest->host, ajob);
+  }
 }
 
 host_list_node *determine_ownership(job *ajob) {
@@ -191,15 +194,28 @@ host_list_node *determine_ownership(job *ajob) {
 }
 
 int write_files(job *ajob, int num_files, data_size *files) {
-  char buffer[BUFFER_SIZE];
+  char buffer[BUFFER_SIZE], back[BUFFER_SIZE];
   FILE *temp;
   int i;
   sprintf(buffer,"./jobs/%d/", ajob->id); 
-  mkdir(buffer, S_IRWXU);
+  if(mkdir(buffer, S_IRWXU)) {
+    if(errno == EEXIST) {
+      problem("directory already exists...\n");
+    } else {
+      problem("mkdir failed with %d\n", errno);
+    }
+  }
   for(i = 0; i < num_files; i++) {
-    sprintf(buffer,"%s", files[i].name); 
+    printf("%s\n", files[i].name); 
+    sprintf(buffer,"jobs/%d/%s", ajob->id, files[i].name);
+    temp = NULL;
     temp = fopen(buffer, "w");
-    fwrite(files[i].data, files[i].size, 1, temp);
+    if(temp) {
+      fwrite(files[i].data, files[i].size, 1, temp);
+    } else {
+      problem("failed to open file %s, errno: %d\n", files[i].name, errno);
+    }
+    fclose(temp);
   }
 }
 
@@ -215,6 +231,7 @@ int receive_file(int connection, data_size *file) {
   int err;
   err = safe_recv(connection, &(file->size), sizeof(size_t));
   if(err < 0) problem("Recv failed size\n");
+  file->data = malloc(file->size);
   err = safe_recv(connection, file->data, file->size);
   if(err < 0) problem("Recv failed data\n");
   err = safe_recv(connection, file->name, MAX_ARGUMENT_LEN*sizeof(char));
