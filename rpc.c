@@ -27,8 +27,13 @@ void handle_rpc(int connection) {
     break;
   case REQUEST_ADD_LOCK:
     rpc_request_add_lock(connection);
+    break;
   case ADD_JOB:
     rpc_add_job(connection);
+    break;
+  case ANNOUNCE:
+    rpc_receive_announce(connection);
+    break;
   default:
     break;
   }
@@ -58,9 +63,18 @@ char *which_rpc(int rpc) {
     break;
   case REQUEST_ADD_LOCK:
     return REQUEST_ADD_LOCK_S;
+  case ADD_JOB:
+    return ADD_JOB_S
+    break;
+  case ANNOUNCE:
+    return ANNOUNCE_S;
+    break;
   default:
     break;
   }
+}
+
+void rpc_receive_announce(int connection) {
 }
 
 void rpc_request_add_lock(int connection) {
@@ -81,19 +95,11 @@ void rpc_send_servers(int connection) {
 
 
 void rpc_receive_update(int connection){
-  host_list *new;
+  host_list *old = server_list;
   int err;
-  err = receive_host_list(connection, &new);
+  err = receive_host_list(connection, &server_list);
   if(err < 0) return; //Fix?
-  if(verify_update(new, server_list)) {
-    err = FAILURE;
-    safe_send(connection, &err, sizeof(int));
-  } else {
-    err = OKAY;
-    safe_send(connection, &err, sizeof(int));
-    free(server_list);
-    server_list = new;
-  }
+  
 }
 
 job *create_job(int num_files, char files[MAX_ARGUMENTS][MAX_ARGUMENT_LEN], int *flags){

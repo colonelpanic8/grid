@@ -46,6 +46,9 @@
 #define ADD_JOB 8
 #define ADD_JOB_S "Add Job"
 
+#define ANNOUNCE 9
+#define ANNOUNCE_S "Announce"
+
 //Job Status
 #define NOT_READY (-1)
 #define READY 0

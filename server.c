@@ -37,6 +37,8 @@ int main(int argc, char **argv) {
   my_hostport = (host_port *)malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
   my_hostport->port = atoi(argv[1]);
+  my_hostport->jobs = 0;
+  my_hostport->location = 0;
   listener_set_up();
 
   if(argc < 3) {
@@ -66,12 +68,14 @@ int integrate_host(host_port *host) {
   runner = server_list->head;
   do {
     dist = distance(runner->host->location, runner->next->host->location);
+    if(!dist) dist = HASH_SPACE_SIZE;
     if(max_distance < dist) {
       max = runner;
       max_distance = dist;
     }
     runner = runner->next;
   } while(runner != server_list->head);
+  host->location = max->location + (max_distance/2);
   add_to_host_list(host, max);
 }
 
@@ -88,7 +92,7 @@ int acquire_add_lock(host_list *list) {
       err = bulletin_make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY) handle_host_failure(runner->host);
       err = request_add_lock(connection);
-      if (err < OKAY) handle_host_failure_by_connection(connection);
+      if (err < OKAY) return FAILURE;
       close(connection);
       runner = runner->next;
     }
@@ -143,10 +147,9 @@ int receive_host_list(int connection, host_list **list) {
   err = safe_recv(connection, &num, sizeof(int));
   if(err < OKAY) return err;
   hosts = malloc(sizeof(host_port)*num);
-  err = safe_recv(connection, &hosts, sizeof(host_port)*num);
+  err = safe_recv(connection, hosts, sizeof(host_port)*num);
   if(err < OKAY) return err;
   
-
   //we malloc new host ports so that freeing is easy later
   //we cant just use the memory we allocated earlier as an array
   //or else it is impossible to free individual elements of the list
@@ -342,17 +345,16 @@ int get_servers(char *hostname, int port, int add_slots, host_list **list) {
 }
 
 int send_update(int connection) {
-  int err;
-  int list_conflict = RECEIVE_UPDATE;
-  err = safe_send(connection, &list_conflict, sizeof(int));
+  int okay;
+  int err = RECEIVE_UPDATE;
+  err = rpc(&err);
   if (err < 0) return err;
   err = send_host_list(connection, server_list);
   if (err < 0) return err;
   err = safe_recv(connection, &list_conflict, sizeof(int));
   if (err < 0) return err;
-  if (list_conflict) {
-    //handle conflicts somehow here
-    return;
+  if(okay) {
+    problem("unsuccessful update\n");
   }
 }
 
@@ -363,7 +365,7 @@ void distribute_update() {
   current_node = server_list->head;
 
   while(current_node != NULL) {
-    if(strcmp(my_hostport->ip, current_node->host->ip)) {
+    if(current_node != my_hostport) {
       err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
       if (err < OKAY) handle_host_failure(current_node->host);
       err = send_update(connection);

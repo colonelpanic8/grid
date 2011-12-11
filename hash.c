@@ -1,5 +1,3 @@
-#define HASH_SPACE_SIZE 16777216
-
 #include "hash.h"
 
 unsigned long sdbm(unsigned char *str) {
