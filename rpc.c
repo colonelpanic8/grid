@@ -128,7 +128,12 @@ int verify_update(host_list *new, host_list *old) {
 }
 
 void rpc_serve_job(int connection) {
-  
+  send_job(get_job(),connection);
+}
+
+void send_job(job *job_to_send,int connection) {
+  int err = OKAY;
+  err = safe_send(connection,&job_to_send,sizeof(job));
 }
 
 void rpc_receive_job_copy(int connection){
@@ -139,6 +144,12 @@ void rpc_request_job(int connection) {
 }
 
 void rpc_inform_of_completion(int connection) {
+  int err = OKAY;
+  int jobid;
+  err = safe_recv(connection,&jobid,sizeof(int));  
+  if (err < OKAY) return;
+
+  update_q_job_complete(jobid,backupQueue);
 }
 
 void rpc_inform_of_failure(int connection) {
