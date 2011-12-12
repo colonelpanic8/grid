@@ -42,6 +42,17 @@ int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   pthread_t runner_thread;
   
+  //setup jobs folder
+  if(mkdir("./jobs", S_IRWXU)) {
+    if(errno == EEXIST) {
+#ifdef VERBOSE
+      problem("directory already exists...\n");
+#endif
+    } else {
+      problem("mkdir failed with %d\n", errno);
+    }
+  }
+  
   queue_setup();
   my_hostport = (host_port *)malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
@@ -96,6 +107,20 @@ void finish() {
   
 }
 
+int heartbeat(host_port *who) {
+  int connection, err;
+  err = make_connection_with(who->ip, who->port, &connection);
+  if (err < OKAY) {
+    handle_host_failure(runner->host);
+    return FAILURE;
+  }
+  err = HEARTBEAT;
+  do_rpc(&err);
+  
+  safe_recv(connection, 
+  
+}
+
 int acquire_add_lock(host_list *list) {
   int err, connection;
   host_list_node *runner;
@@ -127,8 +152,11 @@ int relinquish_add_lock(host_list *list) {
     if(runner->host != my_hostport) { //possibly needs to be changed give the current update structure
       //consider changing updates to work by sending only the identity of the current node?
       err = make_connection_with(runner->host->ip, runner->host->port, &connection);
-      if (err < OKAY) handle_host_failure(runner->host);
-      err = tell_to_unlock(connection);
+      if (err < OKAY) {
+	handle_host_failure(runner->host);
+      } else {
+	err = tell_to_unlock(connection);
+      }
       close(connection);
     }
     runner = runner->next;
@@ -471,36 +499,6 @@ void listen_for_connection(int *listener) {
 		listen_for_connection, listener);
   handle_rpc(connection);
 }
-
-void replicate(job *rep_job) {
-//  host_list_node* current_node;
-//  current_node = rep_job->replica_list->head;
-
-//  while(current_node != NULL) {
-//    copy_job(current_node->host, rep_job);
-//    current_node = current_node->next;
-//  }
-}
-
-void copy_job(host_port *hip, job *cop_job) {
-//  int connection = 0;
-//  int err = OKAY;
-//  make_connection_with(hip->ip, hip->port, &connection);
-//  send_string(connection, "4");
-//  send(connection, &cop_job, sizeof(job), 0);
-//  close(connection);
-}
-
-// void selectHost(job *copy_job) {
-//  int i, j;
-//  i = 0;
-//  j = 0;
-//  while(server_list[i].port != 0) i++;
-//  while(j < NUM_REPLICAS) {
-//    add_replica(server_list[rand() %i ], copy_job);
-//    j++;
-//  }
-// }
 
 void add_replica(host_port *host, job *rep_job) {
 //  add_to_host_list(host,rep_job->replica_list);

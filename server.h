@@ -17,6 +17,7 @@ int tell_to_unlock(int connection);
 void handle_rpc(int connection);
 char *which_rpc(int rpc);
 
+void rpc_heartbeat(int connection);
 void rpc_unlock(int connection);
 void rpc_receive_announce(int connection);
 void rpc_serve_job(int connection);
@@ -32,6 +33,7 @@ void rpc_request_add_lock(int connection);
 void rpc_transfer_job(int connection);
 
 
+int heartbeat();
 int get_remote_job(job **a_job);
 job *get_local_job();
 host_port *find_job_server();
@@ -46,7 +48,6 @@ int receive_file(int connection, data_size *file);
 int get_job_id(job *ajob);
 int write_files(job *ajob, int num_files, data_size *files);
 void copy_job(host_port *hip, job *cop_job);
-void selectHost(job *copy_job);
 void add_replica(host_port *host, job *rep_job);
 void add_to_queue(job *addJob, queue *Q);
 void queue_setup();

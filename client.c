@@ -74,7 +74,7 @@ void simple_add(char *host, int port){
   fgets(buffer, MAX_ARGUMENT_LEN, stdin);
   sprintf(ajob.name, "%s", buffer);
 
-  //Get the requiste files
+  //Get the requisite files
   printf("How many files?\n");
   fgets(buffer, BUFFER_SIZE, stdin);
   sscanf(buffer, "%d", &num_files);
@@ -100,7 +100,7 @@ void simple_add(char *host, int port){
   printf("How many times would you like to add the job?\n");
   scanf("%d", &num_times_to_add);
   for(i = 0; i < num_times_to_add; i++) {
-    job_num = submit_job_to_server(host, port, &ajob, data, ajob.argc);
+    job_num = submit_job_to_server(host, port, &ajob, data, num_files);
     printf("Your job id is %d\n", job_num);
   }
 }

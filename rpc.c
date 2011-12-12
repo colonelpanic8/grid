@@ -40,6 +40,8 @@ void handle_rpc(int connection) {
   case TRANSFER_JOB:
     rpc_transfer_job(connection);
     break;
+  case HEARTBEAT
+    rpc_heartbeat(connection);
   default:
     break;
   }
@@ -81,9 +83,14 @@ char *which_rpc(int rpc) {
   case TRANSFER_JOB:
     return TRANSFER_JOB_S;
     break;
+  case HEARTBEAT:
+    return HEATBEAT_S;
   default:
     break;
   }
+}
+
+void rpc_heartbeat(int connection) {
 }
 
 void rpc_transfer_job(int connection) {
@@ -164,19 +171,24 @@ void rpc_add_job(int connection) {
   if(err < 0) problem("Recv job failed, %d\n",err);
   
   safe_recv(connection, &num_files, sizeof(int));
-  files = malloc(sizeof(data_size)*num_files);
-  for(i = 0; i < num_files; i++) {
-    receive_file(connection, &files[i]);
+  if(num_files > 0) {
+    files = malloc(sizeof(data_size)*num_files);
+    for(i = 0; i < num_files; i++) {
+      receive_file(connection, &files[i]);
+    }
   }
+
   i = get_job_id(new);
   write_files(new, num_files, files);
   send_meta_data(new);
   safe_send(connection, &i, sizeof(int));
-
-  for(i = 0; i < num_files; i++) {
-    free(files[i].data);
+  
+  if(num_files > 0) {
+    for(i = 0; i < num_files; i++) {
+      free(files[i].data);
+    }
+    free(files);
   }
-  free(files);
 }
 
 int send_meta_data(job *ajob) {

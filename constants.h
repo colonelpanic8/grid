@@ -55,6 +55,9 @@
 #define TRANSFER_JOB 11
 #define TRANSFER_JOB_S "Transfer Job"
 
+#define HEARTBEAT 12
+#define HEARTBEAT_S "Heartbeat"
+
 //Job Status
 #define NOT_READY (-1)
 #define READY 0
@@ -72,6 +75,7 @@ typedef struct _host_port {
 typedef struct _host_list_node {
   host_port *host;
   struct _host_list_node *next;
+  pthread_mutex_t lock
 } host_list_node;
 
 typedef struct _host_list {
