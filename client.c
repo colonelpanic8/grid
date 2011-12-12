@@ -63,7 +63,6 @@ int get_file_into_memory(char *name, data_size *location) {
   return OKAY;
 }
 
-
 void simple_add(char *host, int port){
   int num_files, i, num_times_to_add, job_num;
   char buffer[BUFFER_SIZE], filename[MAX_ARGUMENT_LEN];
