@@ -22,7 +22,7 @@ client.o: client.c network.h constants.h
 
 hash.o: hash.h hash.c
 
-hash_test.o: hash_test.c
+hash_test.o: hash_test.c hash.h
 
 clean:
 	rm *.o

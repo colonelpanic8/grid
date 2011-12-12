@@ -10,6 +10,6 @@ int main() {
     scanf("%s", buffer);
     printf("Enter a number\n");
     scanf("%d", &salt);
-    printf("hash in space: %d, actual hash: %ld\n", hash(buffer, salt), _hash(buffer,salt));
+    printf("hash in space: %d, actual hash: %ld\n", hash(buffer, salt), _hash(buffer));
   }
 }

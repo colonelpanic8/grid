@@ -1,17 +1,20 @@
 #include "hash.h"
+#include <stdio.h>
+#define SIZE 256
 
-unsigned long _hash(unsigned char *str, int salt)
+unsigned long _hash(unsigned char *str)
 {
-  unsigned long hash = 5381;
+  unsigned long hash = 2231253;
   int c;
-  hash += salt;
   while (c = *str++)
-    hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    hash = ((hash << 5) + hash) + c;
   return hash;
 }
 
 unsigned int hash(unsigned char *str, int salt) {
-  return (int)(_hash(str, salt) % HASH_SPACE_SIZE);
+  char buffer[256];
+  sprintf(buffer, "%s%d", str, salt);
+  return (int)(_hash(buffer) & (HASH_SPACE_SIZE-1));
 }
 
 int distance(int a, int b) {
