@@ -108,7 +108,7 @@ void rpc_receive_announce(int connection) {
 
 void add_host_to_list_by_location(host_port *host, host_list *list) {
   host_list_node *runner = list->head;
-  while(runner->next->host->location < host->location) {
+  while(runner->next->host->location < host->location && runner->next->host->location != 0) {
     runner = runner->next;
   }
   add_to_host_list(host, runner);
@@ -180,9 +180,10 @@ void rpc_add_job(int connection) {
 }
 
 int send_meta_data(job *ajob) {
+  ajob->status = READY; //needs to be changed once we add dependencies
   host_list_node *dest = determine_ownership(ajob);
   if(dest->host == my_hostport) {
-    
+    add_to_queue(ajob, activeQueue);
   } else {
     transfer_job(dest->host, ajob);
   }
@@ -191,15 +192,17 @@ int send_meta_data(job *ajob) {
 host_list_node *determine_ownership(job *ajob) {
   char buffer[BUFFER_SIZE];
   int _hash;
-  host_list_node *runner, *prev;
+  host_list_node *runner;
   sprintf(buffer, "%d", ajob->id);
   _hash = hash(buffer);
+#ifdef VERBOSE
+  printf("%d hashes to %d\n", ajob->id, _hash);
+#endif
   runner = server_list->head;
-  while(runner->host->location <= _hash) {
-    prev = runner;
+  while(runner->host->location <= _hash && runner->next->host->location != 0) {
     runner = runner->next;
   }
-  return prev;
+  return runner;
 }
 
 int write_files(job *ajob, int num_files, data_size *files) {
@@ -331,8 +334,12 @@ void remove_dependency(job *current, int jobid) {
 }
 
 void add_to_queue(job *addJob, queue *Q) {
-  job_list_node *n; 
+  job_list_node *n;
   n = (job_list_node *)malloc(sizeof(job_list_node));
+  my_hostport->jobs++;
+#ifdef VERBOSE
+    printfl("I have %d jobs", my_hostport->jobs);
+#endif
   n->entry = addJob;
   n->next = Q->head;
   Q->head = n;

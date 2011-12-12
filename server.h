@@ -1,3 +1,4 @@
+#define VERBOSE
 void send_identity(int connection);
 int get_servers(char *hostname, int port, int add_slots, host_list **list);
 void listen_for_connection(int *listener);

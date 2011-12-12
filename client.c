@@ -84,11 +84,12 @@ void simple_add(char *host, int port){
   printf("How many arguments\n");
   fgets(buffer, BUFFER_SIZE, stdin);
   sscanf(buffer, "%d", &num_args);
-  for(i = 0; i < num_files; i++) {
+  for(i = 0; i < num_args; i++) {
     printf("Enter the name of argument %d\n", i);
     fgets(ajob.argv[i], MAX_ARGUMENT_LEN, stdin);
     ajob.argv[i][strlen(ajob.argv[i])-1] = '\0';
   }
+  ajob.argc = num_args;
   i = submit_job_to_server(host, port, &ajob, data, num_files);
   printf("Your job id is %d\n", i);
 }

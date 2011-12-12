@@ -169,12 +169,13 @@ int transfer_job(host_port *host, job *to_send) {
 int announce(int connection, host_port *send) {
   int status = ANNOUNCE;
   status = do_rpc(&status);
-  if(status){
+  if(status < 0){
+    problem("Failed to acknowledge announce\n");
     handle_host_failure_by_connection(connection);
     return status;
   }
   status = safe_send(connection, send, sizeof(host_port));
-  if(status) handle_host_failure_by_connection(connection);
+  if(status < 0) handle_host_failure_by_connection(connection);
   return status;
 }
 
@@ -200,10 +201,10 @@ void distribute_update() {
 
   do {
     if(strcmp(current_node->host->ip, my_hostport->ip)) {
-      err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
+      err = bulletin_make_connection_with(current_node->host->ip, 
+					  current_node->host->port, &connection);
       if (err < OKAY) handle_host_failure(current_node->host);
-      err = send_update(connection);
-      if (err < OKAY) handle_host_failure_by_connection(connection);
+      err = announce(connection, my_hostport);
       close(connection);
     }
     current_node = current_node->next;
@@ -378,14 +379,14 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
 
   do {
     if(strcmp(current_node->host->ip,my_hostport->ip)) {
-     printf("Notifying %s and my ip is %s\n",current_node->host->ip,my_hostport->ip);
-
-     err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
-     if (err < OKAY) { 
-       handle_host_failure(current_node->host);
-     }       else { 
-       inform_of_failure(connection,failed_host);
-     }
+      printf("Notifying %s and my ip is %s\n",current_node->host->ip,my_hostport->ip);
+      err = bulletin_make_connection_with(current_node->host->ip, 
+					  current_node->host->port, &connection);
+      if (err < OKAY) { 
+	handle_host_failure(current_node->host);
+      } else { 
+	inform_of_failure(connection,failed_host);
+      }
     }
     current_node = current_node->next;
   } while(current_node != server_list->head);
@@ -519,6 +520,10 @@ job *get_local_job() {
      current_node = current_node->next;
   }
   if(current_node) {
+    my_hostport->jobs--;
+#ifdef VERBOSE
+    printfl("I have %d jobs", my_hostport->jobs);
+#endif
     current_node->entry->status = RUNNING;
     return current_node->entry;
   }
