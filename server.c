@@ -14,6 +14,7 @@
 #include "constants.h"
 #include "server.h"
 #include "hash.h"
+#include "runner.h"
 
 #define LOCKED 1
 #define UNLOCKED 0
@@ -36,6 +37,7 @@ char who[INET_ADDRSTRLEN];
 
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
+  pthread_t runner_thread;
   queue_setup();
   my_hostport = (host_port *)malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
@@ -62,6 +64,7 @@ int main(int argc, char **argv) {
     distribute_update();
     relinquish_add_lock(server_list);
   }
+  pthread_create(&runner_thread, NULL, (void *(*)(void *))runner, NULL);
   // initialize queue 
   while(1) { 
     sleep(1000);
@@ -407,13 +410,8 @@ void update_q_host_failed (host_port* failed_host, queue *Q) {
    job_list_node *current;
    current = Q->head;
    while(current != NULL) {
-       fix_ownership(current);
        current = current->next;
    } 
-}
-
-void fix_ownership (job_list_node *job) {
-
 }
 
 void print_server_list() {
