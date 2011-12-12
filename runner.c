@@ -18,10 +18,11 @@ int runner() {
     while(get_job_for_runner(&to_run) < 0) {
       nanosleep(&req, NULL);
     }
+    status = run_a_job(to_run);
+    if(status < 0) {
+    } else {
+    }
   }
-  
-  run_a_job(to_run);
-  
 }
 
 int run_a_job(job *to_run) {
