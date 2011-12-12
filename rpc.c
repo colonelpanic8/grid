@@ -172,6 +172,7 @@ void rpc_add_job(int connection) {
   write_files(new, num_files, files);
   send_meta_data(new);
   safe_send(connection, &i, sizeof(int));
+
   for(i = 0; i < num_files; i++) {
     free(files[i].data);
   }
@@ -185,6 +186,7 @@ int send_meta_data(job *ajob) {
     add_to_queue(ajob, activeQueue);
   } else {
     transfer_job(dest->host, ajob);
+    free(ajob);
   }
 }
 

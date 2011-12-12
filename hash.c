@@ -13,7 +13,7 @@ unsigned long _hash(unsigned char *str)
 
 unsigned int hash(unsigned char *str, int salt) {
   char buffer[256];
-  sprintf(buffer, "%s%d", str, salt);
+  sprintf(buffer, "%d%s", salt, str);
   return (int)(_hash(buffer) & (HASH_SPACE_SIZE-1));
 }
 
