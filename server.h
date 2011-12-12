@@ -31,6 +31,8 @@ void rpc_request_add_lock(int connection);
 void rpc_transfer_job(int connection);
 
 
+int get_remote_job(job **a_job);
+host_port *find_job_server();;
 int transfer_job(host_port *host, job *to_send);
 int announce(int connection, host_port *host);
 void failure_notify(host_port *fail);

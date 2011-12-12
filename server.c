@@ -379,8 +379,8 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
 
      err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
      if (err < OKAY) { 
-       handle_host_failure(current_node->host); } 
-     else { 
+       handle_host_failure(current_node->host);
+     }       else { 
        inform_of_failure(connection,failed_host);
      }
     }
@@ -513,4 +513,33 @@ void copy_job(host_port *hip, job *cop_job) {
 
 void add_replica(host_port *host, job *rep_job) {
 //  add_to_host_list(host,rep_job->replica_list);
+}
+
+int get_remote_job(job **a_job) {
+  int err = SERVE_JOB;
+  int connection;
+  host_port *server;
+  *a_job = malloc(sizeof(job));
+  server = find_job_server();  
+  err = bulletin_make_connection_with(server->ip, server->port, &connection);
+  if (err < OKAY) { 
+    handle_host_failure(server);
+    return FAILURE;
+  }
+  do_rpc(&err);
+}
+
+host_port *find_job_server() {
+  host_list_node *n;
+  host_port *p;
+
+  n = server_list->head;
+  p = n->host;
+  do {
+    if (p->jobs < n->host->jobs) {
+      p = n->host;
+    }
+    n = n-> next;
+  } while(n != server_list->head);
+  return p;  
 }
