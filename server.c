@@ -561,8 +561,6 @@ int get_remote_job(job **ptr) {
   return OKAY;
 }
 
-
-
 host_port *find_job_server() {
   host_list_node *n;
   host_port *p;
@@ -579,4 +577,8 @@ host_port *find_job_server() {
   } else {
     return NULL;
   }
+}
+
+int inform_of_completion(job *completed) {
+  return OKAY;
 }
