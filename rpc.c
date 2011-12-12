@@ -210,7 +210,9 @@ int write_files(job *ajob, int num_files, data_size *files) {
   sprintf(buffer,"./jobs/%d/", ajob->id); 
   if(mkdir(buffer, S_IRWXU)) {
     if(errno == EEXIST) {
+#ifdef VERBOSE
       problem("directory already exists...\n");
+#endif
     } else {
       problem("mkdir failed with %d\n", errno);
     }
@@ -344,11 +346,15 @@ void remove_dependency(job *current, int jobid) {
 void add_to_queue(job *addJob, queue *Q) {
   job_list_node *n;
   n = (job_list_node *)malloc(sizeof(job_list_node));
-  my_hostport->jobs++;
-#ifdef VERBOSE
-    printfl("I have %d jobs", my_hostport->jobs);
-#endif
+  
   n->entry = addJob;
   n->next = Q->head;
   Q->head = n;
+
+  pthread_mutex_lock(&my_hostport_mutex);
+  my_hostport->jobs++;
+#ifdef VERBOSE
+  printfl("I have %d jobs", my_hostport->jobs);
+#endif
+  pthread_mutex_unlock(&my_hostport_mutex);
 }
