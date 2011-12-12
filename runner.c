@@ -37,6 +37,7 @@ int run_a_job(job *to_run) {
   int forkint, err, i;
   FILE *out, *in;
   char outpath[BUFFER_SIZE], inpath[BUFFER_SIZE];
+  char *error;
   char **argv;
   argv = malloc(sizeof(char *)*to_run->argc);
   for(i = 0; i < to_run->argc; i++) {
@@ -49,13 +50,14 @@ int run_a_job(job *to_run) {
     }
     return OKAY;
   } else {
-    sprintf(outpath, "./jobs/%d/output.txt", to_run->id);
-    out = fopen(outpath, "w");
-
+    sprintf(inpath, "./jobs/%d/", to_run->id);
+    chdir(inpath);
+    out = fopen("output.txt", "w");
 #ifdef VERBOSE
     printfl("executing: with %d args", to_run->argc);
     for(i = 0; i < to_run->argc; i++)
       printf("%s", argv[i]);
+    printf("\n");
 #endif
 
     if(!out) {
@@ -64,11 +66,11 @@ int run_a_job(job *to_run) {
     if(dup2(fileno(out), STDOUT_FILENO) < 0) {
       problem("dup2 failed, this is very bad, stdout will not be redirected!!!!!!!!!!!!!\n");
     }
-    sprintf(inpath, "./jobs/%d/input.txt", to_run->id);
+    sprintf(inpath, "input.txt", to_run->id);
     in = fopen(inpath, "r");
     if(!in) {
 #ifdef VERBOSE
-      problem("input file failed to open, proceeding without file for standard in");
+      //problem("input file failed to open, proceeding without file for standard in");
 #endif
     } else {
       if(dup2(fileno(out), STDIN_FILENO) < 0) {
@@ -77,6 +79,8 @@ int run_a_job(job *to_run) {
     }
     execvp(argv[0], argv);
     problem("Fatal error for job %d,execvp failed to run with errno: %d\n", to_run->id, errno);
+    error = strerror(errno);
+    problem("%s", error);
     return FAILURE;
   }
   wait(NULL);

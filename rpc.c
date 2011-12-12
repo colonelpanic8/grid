@@ -228,6 +228,16 @@ int write_files(job *ajob, int num_files, data_size *files) {
       problem("failed to open file %s, errno: %d\n", files[i].name, errno);
     }
     fclose(temp);
+
+    //
+    char mode[] = "0777";
+    int i;
+    i = strtol(mode, 0, 8);
+    if (chmod (buffer,i) < 0)
+      {
+	problem("chmod failed");
+      }
+    //
   }
 }
 

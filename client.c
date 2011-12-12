@@ -65,7 +65,7 @@ int get_file_into_memory(char *name, data_size *location) {
 
 
 void simple_add(char *host, int port){
-  int num_files, i, num_args;
+  int num_files, i, num_args, num_times_to_add, job_num;
   char buffer[BUFFER_SIZE];
   job ajob;
   data_size *data;
@@ -90,10 +90,14 @@ void simple_add(char *host, int port){
     ajob.argv[i][strlen(ajob.argv[i])-1] = '\0';
   }
   ajob.argc = num_args;
-  i = submit_job_to_server(host, port, &ajob, data, num_files);
-  printf("Your job id is %d\n", i);
+  
+  printf("How many times would you like to add the job?\n");
+  scanf("%d", &num_times_to_add);
+  for(i = 0; i < num_times_to_add; i++) {
+    job_num = submit_job_to_server(host, port, &ajob, data, num_files);
+    printf("Your job id is %d\n", job_num);
+  }
 }
-
 
 
 void lowercase(char *str) {
@@ -129,7 +133,7 @@ void add_job_std_in(char *host, int port) {
   char temp[BUFFER_SIZE];
   jobs = malloc(sizeof(job)*num_jobs);
 
-
+  
   printf("How many jobs would you like to enqueue?\n");
   fgets(temp, BUFFER_SIZE, stdin);
   sscanf(temp, "%d", &num_jobs);
