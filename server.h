@@ -32,7 +32,8 @@ void rpc_transfer_job(int connection);
 
 
 int get_remote_job(job **a_job);
-host_port *find_job_server();;
+job *get_local_job();
+host_port *find_job_server();
 int transfer_job(host_port *host, job *to_send);
 int announce(int connection, host_port *host);
 void failure_notify(host_port *fail);
@@ -48,7 +49,7 @@ void selectHost(job *copy_job);
 void add_replica(host_port *host, job *rep_job);
 void add_to_queue(job *addJob, queue *Q);
 void queue_setup();
-job *get_job();
+
 
 // linked list and host-port handling
 host_list_node *determine_ownership(job *ajob);

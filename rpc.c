@@ -248,7 +248,14 @@ int receive_file(int connection, data_size *file) {
 }
 
 void rpc_serve_job(int connection) {
-  send_job(get_job(),connection);
+  int msg = FAILURE;
+  job *ajob = get_local_job();
+  if(ajob) {
+    msg = OKAY;
+    do_rpc(&msg); //not doing an rpc just shorthand for sending an int
+    send_job(ajob, connection);
+  }
+  do_rpc(&msg);
 }
 
 void send_job(job *job_to_send,int connection) {

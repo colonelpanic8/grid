@@ -4,9 +4,22 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <time.h>
 #include "constants.h"
 #include "server.h"
 #include "runner.h"
+
+int runner() {
+  job *to_run;
+  struct timespec req;
+  req.tv_sec = 10;
+  while(1) {
+    while(get_job_for_runner(&to_run) < 0) {
+      nanosleep(&req, NULL);
+    }
+  }
+  
+}
 
 int run_a_job(job *to_run) {
   int forkint, err, i;
@@ -16,8 +29,7 @@ int run_a_job(job *to_run) {
   argv = malloc(sizeof(char)*to_run->argc);
   for(i = 0; i < to_run->argc; i++) {
     argv[i] = to_run->argv[i];
-  }
-  
+  }  
   if(forkint = fork()) {
     if(forkint < 0) {
       problem("Unsuccessful fork\n");

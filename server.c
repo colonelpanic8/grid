@@ -427,17 +427,6 @@ void print_server_list() {
   } while(current_node != server_list->head);
 }
 
-job *get_job() {
-  job_list_node *current_node;
-  current_node = activeQueue->head;
-  while (current_node && current_node->entry->status != READY) {
-     current_node = current_node->next;
-   }
-  current_node->entry->status = RUNNING;
-  return current_node->entry;
-}
-
-
 void queue_setup() {
   activeQueue = (queue *)malloc(sizeof(queue));
   backupQueue = (queue *)malloc(sizeof(queue));
@@ -515,24 +504,69 @@ void add_replica(host_port *host, job *rep_job) {
 //  add_to_host_list(host,rep_job->replica_list);
 }
 
-int get_remote_job(job **a_job) {
-  int err = SERVE_JOB;
-  int connection;
-  host_port *server;
-  *a_job = malloc(sizeof(job));
-  server = find_job_server();  
-  err = bulletin_make_connection_with(server->ip, server->port, &connection);
-  if (err < OKAY) { 
-    handle_host_failure(server);
+int get_job_for_runner(job **ptr) {
+  if(*ptr = get_local_job()) {
+    return OKAY;
+  }
+  if(get_remote_job(ptr) < 0) {
     return FAILURE;
   }
-  do_rpc(&err);
+  return OKAY;
 }
+
+job *get_local_job() {
+  job_list_node *current_node;
+  current_node = activeQueue->head;
+  while (current_node && current_node->entry->status != READY) {
+     current_node = current_node->next;
+  }
+  if(current_node) {
+    current_node->entry->status = RUNNING;
+    return current_node->entry;
+  }
+  return NULL;
+}
+
+int get_remote_job(job **ptr) {
+  int err = SERVE_JOB;
+  int status;
+  int connection;
+  host_port *server;
+  do {
+    server = find_job_server();
+    if(!server) {
+      //find_job_server only fails when no one has any jobs
+      return FAILURE;
+    }
+    err = bulletin_make_connection_with(server->ip, server->port, &connection);
+    if (err < OKAY) { 
+      handle_host_failure(server);
+      return FAILURE;
+    }
+    do_rpc(&err);
+    status = FAILURE;
+    err = safe_recv(connection, &status, sizeof(int));
+    if(err < 0) {
+      return err;
+    }
+    
+    if(status < 0) {
+      //set stuff up so we can try again
+      server->jobs = 0;
+      close(connection);
+    }
+  } while(status < 0);
+  *ptr = malloc(sizeof(job));
+  err = safe_recv(connection, *ptr, sizeof(job));
+  close(connection);
+  return OKAY;
+}
+
+
 
 host_port *find_job_server() {
   host_list_node *n;
   host_port *p;
-
   n = server_list->head;
   p = n->host;
   do {
@@ -541,5 +575,9 @@ host_port *find_job_server() {
     }
     n = n-> next;
   } while(n != server_list->head);
-  return p;  
+  if(p->jobs) {
+    return p;
+  } else {
+    return NULL;
+  }
 }
