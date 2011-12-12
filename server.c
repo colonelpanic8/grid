@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <time.h>
-#include "bulletin.h"
+#include "network.h"
 #include "constants.h"
 #include "server.h"
 #include "hash.h"
@@ -25,7 +25,10 @@ int counter = 0;
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list;
 int num_servers;
+
+pthread_mutex_t my_hostport_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_port *my_hostport;
+
 queue *activeQueue;
 queue *backupQueue;
 
@@ -38,6 +41,7 @@ char who[INET_ADDRSTRLEN];
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   pthread_t runner_thread;
+  
   queue_setup();
   my_hostport = (host_port *)malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
@@ -64,11 +68,9 @@ int main(int argc, char **argv) {
     distribute_update();
     relinquish_add_lock(server_list);
   }
+
   pthread_create(&runner_thread, NULL, (void *(*)(void *))runner, NULL);
-  // initialize queue 
-  while(1) { 
-    sleep(1000);
-  } 
+  pthread_join(runner_thread, NULL);
 }
 
 int integrate_host(host_port *host) {
@@ -91,6 +93,7 @@ int integrate_host(host_port *host) {
 
 
 void finish() {
+  
 }
 
 int acquire_add_lock(host_list *list) {
@@ -99,7 +102,7 @@ int acquire_add_lock(host_list *list) {
   runner = list->head;
   do {
     if(runner->host != my_hostport) {
-      err = bulletin_make_connection_with(runner->host->ip, runner->host->port, &connection);
+      err = make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY){
 	handle_host_failure(runner->host);
 	return FAILURE;
@@ -123,7 +126,7 @@ int relinquish_add_lock(host_list *list) {
   do {
     if(runner->host != my_hostport) { //possibly needs to be changed give the current update structure
       //consider changing updates to work by sending only the identity of the current node?
-      err = bulletin_make_connection_with(runner->host->ip, runner->host->port, &connection);
+      err = make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY) handle_host_failure(runner->host);
       err = tell_to_unlock(connection);
       close(connection);
@@ -151,7 +154,7 @@ int request_add_lock(int connection) {
 
 int transfer_job(host_port *host, job *to_send) {
   int connection, err;
-  err = bulletin_make_connection_with(host->ip, host->port, &connection);
+  err = make_connection_with(host->ip, host->port, &connection);
   if (err < OKAY) {
     handle_host_failure(host);
     return FAILURE;
@@ -201,7 +204,7 @@ void distribute_update() {
 
   do {
     if(strcmp(current_node->host->ip, my_hostport->ip)) {
-      err = bulletin_make_connection_with(current_node->host->ip, 
+      err = make_connection_with(current_node->host->ip, 
 					  current_node->host->port, &connection);
       if (err < OKAY) handle_host_failure(current_node->host);
       err = announce(connection, my_hostport);
@@ -380,7 +383,7 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
   do {
     if(strcmp(current_node->host->ip,my_hostport->ip)) {
       printf("Notifying %s and my ip is %s\n",current_node->host->ip,my_hostport->ip);
-      err = bulletin_make_connection_with(current_node->host->ip, 
+      err = make_connection_with(current_node->host->ip, 
 					  current_node->host->port, &connection);
       if (err < OKAY) { 
 	handle_host_failure(current_node->host);
@@ -437,7 +440,7 @@ int get_servers(char *hostname, int port, int add_slots, host_list **list) {
   int connection = 0;
   int result = 0;
   int err;
-  err = bulletin_make_connection_with(hostname, port, &connection);
+  err = make_connection_with(hostname, port, &connection);
   if(err < 0) {
     problem("Failed to connect to retrive servers");
     return FAILURE;
@@ -453,7 +456,7 @@ void listener_set_up() {
   pthread_t thread;
   int *listener, connect_result;
   listener = malloc(sizeof(int));
-  connect_result = bulletin_set_up_listener(my_hostport->port, listener);
+  connect_result = set_up_listener(my_hostport->port, listener);
   pthread_create(&thread, NULL, (void *(*)(void *))listen_for_connection, listener);
 }
 
@@ -462,7 +465,7 @@ void listen_for_connection(int *listener) {
   pthread_t thread;
   connect_result = -1;
   do {
-    connect_result = bulletin_wait_for_connection(*listener, &connection);
+    connect_result = wait_for_connection(*listener, &connection);
   } while(connect_result < 0);
   pthread_create(&thread, NULL, (void *(*)(void *))
 		listen_for_connection, listener);
@@ -482,7 +485,7 @@ void replicate(job *rep_job) {
 void copy_job(host_port *hip, job *cop_job) {
 //  int connection = 0;
 //  int err = OKAY;
-//  bulletin_make_connection_with(hip->ip, hip->port, &connection);
+//  make_connection_with(hip->ip, hip->port, &connection);
 //  send_string(connection, "4");
 //  send(connection, &cop_job, sizeof(job), 0);
 //  close(connection);
@@ -541,7 +544,7 @@ int get_remote_job(job **ptr) {
       //find_job_server only fails when no one has any jobs
       return FAILURE;
     }
-    err = bulletin_make_connection_with(server->ip, server->port, &connection);
+    err = make_connection_with(server->ip, server->port, &connection);
     if (err < OKAY) { 
       handle_host_failure(server);
       return FAILURE;

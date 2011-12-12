@@ -9,7 +9,7 @@
 #include <netdb.h>
 #include <errno.h>
 #include <pthread.h>
-#include "bulletin.h"
+#include "network.h"
 #include "constants.h"
 #include "client.h"
 
@@ -17,7 +17,7 @@
 int submit_job_to_server(char *host, int port, job *to_send, data_size *files, int num_files) {
   int connection, i, err;
   char ip[INET_ADDRSTRLEN];
-  i = bulletin_make_connection_with(host, port, &connection);
+  i = make_connection_with(host, port, &connection);
   if(i < 0) {
     problem("Connection to server failed\n");
     exit(-1);
@@ -65,36 +65,43 @@ int get_file_into_memory(char *name, data_size *location) {
 
 
 void simple_add(char *host, int port){
-  int num_files, i, num_args, num_times_to_add, job_num;
-  char buffer[BUFFER_SIZE];
+  int num_files, i, num_times_to_add, job_num;
+  char buffer[BUFFER_SIZE], filename[MAX_ARGUMENT_LEN];
   job ajob;
   data_size *data;
-  char filename[MAX_ARGUMENT_LEN];
-  printf("How many files\n");
+  
+  //Get the name of our job
+  printfl("Enter the name of your job");
+  fgets(buffer, MAX_ARGUMENT_LEN, stdin);
+  sprintf(ajob.name, "%s", buffer);
+
+  //Get the requiste files
+  printf("How many files?\n");
   fgets(buffer, BUFFER_SIZE, stdin);
   sscanf(buffer, "%d", &num_files);
   data = malloc(sizeof(data_size)*num_files);
   for(i = 0; i < num_files; i++) {
     do {
-      printf("Enter a file name %d\n", i);
+      printf("Enter the name of file %d\n", i + 1);
       fgets(filename, MAX_ARGUMENT_LEN, stdin);
       filename[strlen(filename)-1] = '\0';
     } while(get_file_into_memory(filename, &data[i]));
   }
-  printf("How many arguments\n");
+
+  //Enter the number of arguments
+  printf("Enter the number of arguments: \n");
   fgets(buffer, BUFFER_SIZE, stdin);
-  sscanf(buffer, "%d", &num_args);
-  for(i = 0; i < num_args; i++) {
+  sscanf(buffer, "%d", &(ajob.argc));
+  for(i = 0; i < ajob.argc; i++) {
     printf("Enter the name of argument %d\n", i);
     fgets(ajob.argv[i], MAX_ARGUMENT_LEN, stdin);
     ajob.argv[i][strlen(ajob.argv[i])-1] = '\0';
   }
-  ajob.argc = num_args;
   
   printf("How many times would you like to add the job?\n");
   scanf("%d", &num_times_to_add);
   for(i = 0; i < num_times_to_add; i++) {
-    job_num = submit_job_to_server(host, port, &ajob, data, num_files);
+    job_num = submit_job_to_server(host, port, &ajob, data, ajob.argc);
     printf("Your job id is %d\n", job_num);
   }
 }
@@ -123,7 +130,9 @@ int parse_dependencies(char *str, char job_names[MAX_JOBS][MAX_ARGUMENT_LEN], jo
 
 
 int main(int argc, char **argv) {
-  simple_add(argv[1], atoi(argv[2]));
+  if(argc > 2) {
+    simple_add(argv[1], atoi(argv[2]));
+  }
 }
 
 void add_job_std_in(char *host, int port) {

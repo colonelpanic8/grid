@@ -1,15 +1,17 @@
 #include "hash.h"
 
-unsigned long sdbm(unsigned char *str) {
-  unsigned long hash = 0;
+unsigned long _hash(unsigned char *str, int salt)
+{
+  unsigned long hash = 5381;
   int c;
+  hash += salt;
   while (c = *str++)
-    hash = c + (hash << 6) + (hash << 16) - hash;
+    hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
   return hash;
 }
 
-unsigned int hash(unsigned char *str) {
-  return (int)(sdbm(str) % HASH_SPACE_SIZE);
+unsigned int hash(unsigned char *str, int salt) {
+  return (int)(_hash(str, salt) % HASH_SPACE_SIZE);
 }
 
 int distance(int a, int b) {
