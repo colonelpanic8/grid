@@ -53,6 +53,7 @@ int main(int argc, char **argv) {
     }
     if(acquire_add_lock(server_list)) {
       problem("Fatal error. Failed to acquire add lock.\n");
+      relinquish_add_lock(server_list);
       finish();
       exit(-1);
     }
@@ -96,7 +97,10 @@ int acquire_add_lock(host_list *list) {
   do {
     if(runner->host != my_hostport) {
       err = bulletin_make_connection_with(runner->host->ip, runner->host->port, &connection);
-      if (err < OKAY) handle_host_failure(runner->host);
+      if (err < OKAY){
+	handle_host_failure(runner->host);
+	return FAILURE;
+      }
       err = request_add_lock(connection);
       if (err < OKAY){
 	relinquish_add_lock(list);
@@ -365,16 +369,20 @@ void local_handle_failure(host_port *failed_host) {
 
 void notify_others_of_failure(host_port *failed_host) { // tell everyone
   int connection = 0;
-
+  int err;
   host_list_node* current_node;
   current_node = server_list->head;
 
   do {
     if(strcmp(current_node->host->ip,my_hostport->ip)) {
      printf("Notifying %s and my ip is %s\n",current_node->host->ip,my_hostport->ip);
-     int err;
+
      err = bulletin_make_connection_with(current_node->host->ip, current_node->host->port, &connection);
-     if (err < OKAY) { handle_host_failure(current_node->host); } else { inform_of_failure(connection,failed_host); }
+     if (err < OKAY) { 
+       handle_host_failure(current_node->host); } 
+     else { 
+       inform_of_failure(connection,failed_host);
+     }
     }
     current_node = current_node->next;
   } while(current_node != server_list->head);
@@ -382,10 +390,17 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
 
 void inform_of_failure(int connection, host_port *failed_host) {
   int err = INFORM_OF_FAILURE;
-  err = safe_send(connection,&err,sizeof(int));
-  if (err < 0) { handle_host_failure_by_connection(connection); return; }
+  err = do_rpc(&err);
+  if (err < 0) {
+    handle_host_failure_by_connection(connection); 
+    return; 
+  }
   err = safe_send(connection,failed_host,sizeof(host_port));
-  if (err < 0) { handle_host_failure_by_connection(connection); return; }
+  if (err < 0) {
+    problem("failed to send");
+    handle_host_failure_by_connection(connection);
+    return; 
+  }
 }
 
 void update_q_host_failed (host_port* failed_host, queue *Q) {
@@ -464,7 +479,6 @@ void listen_for_connection(int *listener) {
   pthread_create(&thread, NULL, (void *(*)(void *))
 		listen_for_connection, listener);
   handle_rpc(connection);
-  close(connection);
 }
 
 void replicate(job *rep_job) {

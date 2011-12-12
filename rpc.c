@@ -277,8 +277,12 @@ void rpc_inform_of_completion(int connection) {
 void rpc_inform_of_failure(int connection) {
   int err = OKAY;
   host_port *received_hp, *failed_host;
+  received_hp = malloc(sizeof(host_port));
   err = safe_recv(connection,received_hp,sizeof(host_port));  
-  if (err < OKAY) return;
+  if (err < OKAY){
+    problem("did not receive failed host");
+    return;
+  }
 
   failed_host = find_host_in_list(received_hp->ip,server_list);
   local_handle_failure(failed_host);
