@@ -27,3 +27,5 @@ hash_test.o: hash_test.c
 clean:
 	rm *.o
 	rm server
+	rm client
+	rm hash_test
