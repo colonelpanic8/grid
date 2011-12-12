@@ -11,6 +11,7 @@
 
 int runner() {
   job *to_run;
+  int status;
   struct timespec req;
   req.tv_sec = 10;
   while(1) {
@@ -18,6 +19,8 @@ int runner() {
       nanosleep(&req, NULL);
     }
   }
+  
+  run_a_job(to_run);
   
 }
 

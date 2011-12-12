@@ -77,5 +77,6 @@ void replace_host_in_replica_list(host_port* failed_host, job* job);
 
 // job handling functions
 void fix_ownership (job_list_node *job);
-void send_job(job *job_to_send,int connection);
+void send_job(job *job_to_send, int connection);
 void rpc_serve_job(int connection);
+int inform_of_completion(job *completed)

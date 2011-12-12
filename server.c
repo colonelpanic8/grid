@@ -549,7 +549,6 @@ int get_remote_job(job **ptr) {
     if(err < 0) {
       return err;
     }
-    
     if(status < 0) {
       //set stuff up so we can try again
       server->jobs = 0;
