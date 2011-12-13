@@ -25,7 +25,7 @@ int runner() {
 #ifdef SHOW_RUNNER_STATUS
       printf("No jobs to run, sleeping\n");
 #endif
-      //heartbeat();
+      heartbeat();
       nanosleep(&req, NULL);
     }
     printf("running %d\n", to_run->id);
@@ -58,10 +58,12 @@ int run_a_job(job *to_run) {
     chdir(inpath);
     out = fopen("output.txt", "w");
 #ifdef VERBOSE
-    printfl("executing: with %d args", to_run->argc);
+    printf(BAR);
+    printfl("Executing: %s |  Job Id: %d", to_run->name, to_run->id);
     for(i = 0; i < to_run->argc; i++)
-      printf("%s", argv[i]);
+      printf("%s ", argv[i]);
     printf("\n");
+    printf(BAR);
 #endif
 
     if(!out) {
@@ -83,8 +85,9 @@ int run_a_job(job *to_run) {
     }
     execvp(argv[0], argv);
     problem("Fatal error for job %d,execvp failed to run with errno: %d\n", to_run->id, errno);
+    problem("strerror says\n");
     error = strerror(errno);
-    problem("%s", error);
+    problem("%s\n", error);
     return FAILURE;
   }
   wait(NULL);

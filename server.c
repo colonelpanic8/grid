@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   }
   
   queue_setup();
-  my_hostport = (host_port *)malloc(sizeof(host_port));
+  my_hostport = malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
   my_hostport->port = atoi(argv[1]);
   my_hostport->jobs = 0;
@@ -134,13 +134,15 @@ int heartbeat() {
     pthread_mutex_unlock(&(my_host->lock));
     safe_send(connection, my_host->host, sizeof(host_port));
     update_job_counts(incoming);
+    free_host_list(incoming, 1);
   }
   heartbeat_dest = heartbeat_dest->next;
 }
 
 int update_job_counts(host_list *update) {
   host_list_node *my_runner, *update_runner;
-  
+  my_runner = server_list->head;
+  update_runner = update->head;
   do {
 #ifdef CAREFUL
     if(strcmp(my_runner->host->ip, update_runner->host->ip)) {
@@ -345,9 +347,12 @@ void host_port_copy(host_port *src, host_port *dst) {
 
 void free_host_list(host_list *list, int flag) {
   host_list_node *runner = list->head;
+  host_list_node *prev;
   do {
     if(runner->host && flag) free(runner->host);
+    prev = runner;
     runner = runner->next;
+    free(prev);
   } while(runner != list->head) ;
   free(list);
 }
@@ -567,17 +572,25 @@ job *get_local_job() {
     current_node = current_node->next;
   }
   if(current_node && current_node->entry) {
+#ifdef SHOW_RUNNER_STATUS
+	printfl("current_node was NULL OR entry was null");
+#endif
     pthread_mutex_lock(&(current_node->lock));
     if(current_node->entry->status == READY) {
-	pthread_mutex_lock(&my_host->lock);
-	my_host->host->jobs--;
+      pthread_mutex_lock(&(my_host->lock));
+      my_host->host->jobs--;
 #ifdef VERBOSE
-	printfl("I have %d jobs", my_host->host->jobs);
+      printfl("I have %d jobs", my_host->host->jobs);
 #endif
-	pthread_mutex_unlock(&my_host->lock);
-	current_node->entry->status = RUNNING;
-	return current_node->entry;
-      }
+      pthread_mutex_unlock(&(my_host->lock));
+      current_node->entry->status = RUNNING;
+      return current_node->entry;
+    }
+#ifdef SHOW_RUNNER_STATUS
+    else {
+      printfl("Status was not ready");
+    }
+#endif
     pthread_mutex_unlock(&(current_node->lock));
   }
   
@@ -654,10 +667,8 @@ void add_to_queue(job *addJob, queue *Q) {
   n->next = NULL;
   n->entry = addJob;
   if(Q->tail) {
-    pthread_mutex_lock(&Q->tail->lock);
     Q->tail->next = n;
     Q->tail = n;
-    pthread_mutex_unlock(&Q->tail->lock);
   } else {
     Q->tail = n;
     Q->head = n;
