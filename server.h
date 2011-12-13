@@ -33,6 +33,7 @@ void rpc_transfer_job(int connection);
 
 
 int heartbeat();
+int update_job_counts(host_list *update);
 int get_remote_job(job **a_job);
 job *get_local_job();
 host_port *find_job_server();
