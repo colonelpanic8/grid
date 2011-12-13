@@ -364,18 +364,4 @@ void remove_dependency(job *current, int jobid) {
   }
 }
 
-void add_to_queue(job *addJob, queue *Q) {
-  job_list_node *n;
-  n = (job_list_node *)malloc(sizeof(job_list_node));
-  
-  n->entry = addJob;
-  n->next = Q->head;
-  Q->head = n;
 
-  pthread_mutex_lock(&(my_host->lock));
-  my_host->host->jobs++;
-#ifdef VERBOSE
-  printfl("I have %d jobs", my_host->host->jobs);
-#endif
-  pthread_mutex_unlock(&(my_host->lock));
-}
