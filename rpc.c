@@ -215,7 +215,7 @@ host_list_node *determine_ownership(job *ajob) {
   host_list_node *runner;
   job_hash = hash(ajob->name, ajob->id);
 #ifdef VERBOSE
-  printf("%s,%d hashes to %d\n", ajob->name, ajob->id, job_hash);
+  printf("%s, %d hashes to %d\n", ajob->name, ajob->id, job_hash);
 #endif
   runner = server_list->head;
   while(runner->host->location <= job_hash && runner->next->host->location != 0) {

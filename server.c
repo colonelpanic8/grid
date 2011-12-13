@@ -24,11 +24,11 @@ pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
 int counter = 0;
 
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
-host_list *server_list;
+host_list *server_list = NULL;
 int num_servers, *listener;
 
-host_list_node *my_host;
-host_list_node *heartbeat_dest;
+host_list_node *my_host = NULL;
+host_list_node *heartbeat_dest = NULL;
 
 queue *activeQueue;
 queue *backupQueue;
@@ -563,14 +563,12 @@ int get_job_for_runner(job **ptr) {
 job *get_local_job() {
   job_list_node *current_node;
   current_node = activeQueue->head;
-  while (current_node && current_node->entry->status != READY) {
+  while (current_node && current_node->entry && current_node->entry->status != READY) {
     current_node = current_node->next;
   }
-  
-  if(current_node) {
+  if(current_node && current_node->entry) {
     pthread_mutex_lock(&(current_node->lock));
-    if(current_node->entry->status == READY)
-      {
+    if(current_node->entry->status == READY) {
 	pthread_mutex_lock(&my_host->lock);
 	my_host->host->jobs--;
 #ifdef VERBOSE
