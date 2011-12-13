@@ -98,7 +98,9 @@ typedef struct _job_node {
 
 typedef struct _queue{
   job_list_node *head; 
-  //job_node *tail;
+  job_list_node *tail;
+  pthread_mutex_t head_lock;
+  pthread_mutex_t tail_lock;
 } queue;
 
 typedef struct _data_size {

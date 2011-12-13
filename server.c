@@ -496,6 +496,12 @@ void queue_setup() {
   backupQueue = (queue *)malloc(sizeof(queue));
   activeQueue->head = NULL;
   backupQueue->head = NULL;
+  activeQueue->tail = NULL;
+  backupQueue->tail = NULL;
+  pthread_mutex_init(&(activeQueue->head_lock), NULL); 
+  pthread_mutex_init(&(activeQueue->tail_lock), NULL); 
+  pthread_mutex_init(&(backupQueue->head_lock), NULL); 
+  pthread_mutex_init(&(backupQueue->tail_lock), NULL); 
 }
 
 int get_servers(char *hostname, int port, int add_slots, host_list **list) {
@@ -552,17 +558,23 @@ job *get_local_job() {
   job_list_node *current_node;
   current_node = activeQueue->head;
   while (current_node && current_node->entry->status != READY) {
-     current_node = current_node->next;
+    current_node = current_node->next;
   }
+  
   if(current_node) {
-    pthread_mutex_lock(&my_host->lock);
-    my_host->host->jobs--;
+    pthread_mutex_lock(&(current_node->lock));
+    if(current_node->entry->status == READY)
+      {
+	pthread_mutex_lock(&my_host->lock);
+	my_host->host->jobs--;
 #ifdef VERBOSE
-    printfl("I have %d jobs", my_host->host->jobs);
+	printfl("I have %d jobs", my_host->host->jobs);
 #endif
-    pthread_mutex_unlock(&my_host->lock);
-    current_node->entry->status = RUNNING;
-    return current_node->entry;
+	pthread_mutex_unlock(&my_host->lock);
+	current_node->entry->status = RUNNING;
+	return current_node->entry;
+      }
+    pthread_mutex_unlock(&(current_node->lock));
   }
   return NULL;
 }
@@ -624,12 +636,26 @@ int inform_of_completion(job *completed) {
 }
 
 void add_to_queue(job *addJob, queue *Q) {
-  job_list_node *n;
+  job_list_node *n, *prev;
+
   n = (job_list_node *)malloc(sizeof(job_list_node));
+  pthread_mutex_init(&(n->lock), NULL);
+
+  pthread_mutex_lock(&(n->lock));
+  pthread_mutex_lock(&(Q->tail_lock));  
   
-  n->entry = addJob;
-  n->next = Q->head;
-  Q->head = n;
+  n->next = NULL;
+  if(Q->tail) {
+    n->entry = addJob;
+    Q->tail->next = n;
+    Q->tail = n;
+  } else {
+    Q->tail = n;
+    Q->head = n;
+  }
+  
+  pthread_mutex_unlock(&(Q->tail_lock));
+  pthread_mutex_unlock(&(n->lock));
 
   pthread_mutex_lock(&(my_host->lock));
   my_host->host->jobs++;
