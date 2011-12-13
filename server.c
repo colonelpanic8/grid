@@ -574,13 +574,13 @@ job *get_local_job() {
 }
 
 int get_remote_job(job **ptr) {
-  int err = SERVE_JOB;
+  int err;
   int status;
   int connection;
   host_port *server;
   do {
     server = find_job_server();
-    if(!server) {
+    if(!server || server == my_host->host) {
       //find_job_server only fails when no one has any jobs
       return FAILURE;
     }
@@ -589,6 +589,7 @@ int get_remote_job(job **ptr) {
       handle_host_failure(server);
       return FAILURE;
     }
+    err = SERVE_JOB;
     do_rpc(&err);
     status = FAILURE;
     err = safe_recv(connection, &status, sizeof(int));
