@@ -157,7 +157,7 @@ int acquire_add_lock(host_list *list) {
   host_list_node *runner;
   runner = list->head;
   do {
-    if(runner = my_host) {
+    if(runner != my_host) {
       err = make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY){
 	handle_host_failure(runner->host);
