@@ -27,6 +27,7 @@ host_list *server_list;
 int num_servers;
 
 host_list_node *my_host;
+host_list_node *heartbeat_dest;
 
 queue *activeQueue;
 queue *backupQueue;
@@ -81,6 +82,7 @@ int main(int argc, char **argv) {
     distribute_update();
     relinquish_add_lock(server_list);
   }
+  heartbeat_dest = my_host->next;
 
   pthread_create(&runner_thread, NULL, (void *(*)(void *))runner, NULL);
   pthread_join(runner_thread, NULL);
@@ -109,22 +111,25 @@ void finish() {
   
 }
 
-int heartbeat(host_port *who) {
+int heartbeat() {
   int connection, err;
-  host_list *incoming;
-  err = make_connection_with(who->ip, who->port, &connection);
-  if (err < OKAY) {
-    handle_host_failure(who);
-    return FAILURE;
+  if(heartbeat_dest != my_host) {
+    host_list *incoming;
+    err = make_connection_with(heartbeat_dest->host->ip, heartbeat_dest->host->port, &connection);
+    if (err < OKAY) {
+      handle_host_failure(heartbeat_dest->host);
+      return FAILURE;
+    }
+    err = HEARTBEAT;
+    do_rpc(&err);
+    receive_host_list(connection, &incoming);
+    pthread_mutex_lock(&(my_host->lock));
+    my_host->host->time_stamp++;
+    pthread_mutex_unlock(&(my_host->lock));
+    safe_send(connection, my_host->host, sizeof(host_port));
+    update_job_counts(incoming);
   }
-  err = HEARTBEAT;
-  do_rpc(&err);
-  receive_host_list(connection, &incoming);
-  pthread_mutex_lock(&(my_host->lock));
-  my_host->host->time_stamp++;
-  pthread_mutex_unlock(&(my_host->lock));
-  safe_send(connection, my_host->host, sizeof(host_port));
-  update_job_counts(incoming);
+  heartbeat_dest = heartbeat_dest->next;
 }
 
 int update_job_counts(host_list *update) {
@@ -353,6 +358,7 @@ host_list *new_host_list(host_port *initial_host_port) {
 host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *where_to_add) {
   host_list_node *new_node;
   new_node = (host_list_node *)malloc(sizeof(host_list_node));
+  pthread_mutex_init(&(new_node->lock), NULL);
   new_node->next = where_to_add->next;
   new_node->host = added_host_port;
   where_to_add->next = new_node;
