@@ -580,6 +580,7 @@ job *get_local_job() {
       }
     pthread_mutex_unlock(&(current_node->lock));
   }
+  
   return NULL;
 }
 
@@ -647,13 +648,16 @@ void add_to_queue(job *addJob, queue *Q) {
   pthread_mutex_init(&(n->lock), NULL);
 
   pthread_mutex_lock(&(n->lock));
-  pthread_mutex_lock(&(Q->tail_lock));  
+  pthread_mutex_lock(&(Q->tail_lock));
+  
   
   n->next = NULL;
+  n->entry = addJob;
   if(Q->tail) {
-    n->entry = addJob;
+    pthread_mutex_lock(&Q->tail->lock);
     Q->tail->next = n;
     Q->tail = n;
+    pthread_mutex_unlock(&Q->tail->lock);
   } else {
     Q->tail = n;
     Q->head = n;
