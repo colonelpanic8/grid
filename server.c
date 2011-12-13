@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
   my_hostport->port = atoi(argv[1]);
   my_hostport->jobs = 0;
   my_hostport->location = 0;
-  listener_set_up();
+  listener_set_up(my_hostport);
 
   if(argc < 3) {
     server_list = new_host_list(my_hostport);
@@ -482,11 +482,11 @@ int get_servers(char *hostname, int port, int add_slots, host_list **list) {
   return result;
 }
 
-void listener_set_up() {
+void listener_set_up(host_port *info) {
   pthread_t thread;
   int *listener, connect_result;
   listener = malloc(sizeof(int));
-  connect_result = set_up_listener(my_host->host->port, listener);
+  connect_result = set_up_listener(info->port, listener);
   pthread_create(&thread, NULL, (void *(*)(void *))listen_for_connection, listener);
 }
 
