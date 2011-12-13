@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <netdb.h>
 #include <errno.h>
 #include <pthread.h>
@@ -24,7 +25,7 @@ int counter = 0;
 
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list;
-int num_servers;
+int num_servers, *listener;
 
 host_list_node *my_host;
 host_list_node *heartbeat_dest;
@@ -43,6 +44,7 @@ int main(int argc, char **argv) {
   pthread_t runner_thread;
   host_port *my_hostport;
   
+  signal (SIGINT, finish);
   //setup jobs folder
   if(mkdir("./jobs", S_IRWXU)) {
     if(errno == EEXIST) {
@@ -74,7 +76,7 @@ int main(int argc, char **argv) {
     if(acquire_add_lock(server_list)) {
       problem("Fatal error. Failed to acquire add lock.\n");
       relinquish_add_lock(server_list);
-      finish();
+      finish(0);
       exit(-1);
     }
     my_host = integrate_host(my_hostport);
@@ -107,8 +109,12 @@ host_list_node *integrate_host(host_port *host) {
 }
 
 
-void finish() {
-  
+void finish(int sig) {
+  printf("\nFinishing\n");
+  close(*listener);
+  free(listener);
+  free_host_list(server_list,1);
+  exit(0);
 }
 
 int heartbeat() {
@@ -522,7 +528,7 @@ int get_servers(char *hostname, int port, int add_slots, host_list **list) {
 
 void listener_set_up(host_port *info) {
   pthread_t thread;
-  int *listener, connect_result;
+  int connect_result;
   listener = malloc(sizeof(int));
   connect_result = set_up_listener(info->port, listener);
   pthread_create(&thread, NULL, (void *(*)(void *))listen_for_connection, listener);

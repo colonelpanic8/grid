@@ -5,7 +5,7 @@ int send_update(int connection);
 void distribute_update();
 void listener_set_up();
 void print_server_list();
-void finish();
+void finish(int sig);
 int acquire_add_lock(host_list *list);
 host_list_node *integrate_host(host_port *host);
 int relinquish_add_lock(host_list *list);
