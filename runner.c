@@ -31,6 +31,7 @@ int runner() {
     status = run_a_job(to_run);
     if(status < 0) {
     } else {
+      //handle job failure
     }
   }
 }
