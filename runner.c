@@ -25,6 +25,7 @@ int runner() {
 #ifdef SHOW_RUNNER_STATUS
       printf("No jobs to run, sleeping\n");
 #endif
+      heartbeat();
       nanosleep(&req, NULL);
     }
     printf("running %d\n", to_run->id);
