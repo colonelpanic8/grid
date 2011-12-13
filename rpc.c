@@ -221,6 +221,9 @@ host_list_node *determine_ownership(job *ajob) {
   while(runner->host->location <= job_hash && runner->next->host->location != 0) {
     runner = runner->next;
   }
+#ifdef VERBOSE
+  printf("So it belongs to %s\n", runner->host->ip);
+#endif
   return runner;
 }
 

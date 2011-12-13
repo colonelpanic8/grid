@@ -71,8 +71,8 @@ void simple_add(char *host, int port){
   
   //Get the name of our job
   printfl("Enter the name of your job");
-  fgets(buffer, MAX_ARGUMENT_LEN, stdin);
-  sprintf(ajob.name, "%s", buffer);
+  fgets(ajob.name, MAX_ARGUMENT_LEN, stdin);
+  ajob.name[strlen(ajob.name)-1] = '\0';
 
   //Get the requisite files
   printf("How many files?\n");
