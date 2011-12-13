@@ -1,4 +1,3 @@
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -59,6 +58,7 @@ int main(int argc, char **argv) {
   get_my_ip(my_hostport->ip);
   my_hostport->port = atoi(argv[1]);
   my_hostport->jobs = 0;
+  my_hostport->time_stamp = 0;
   my_hostport->location = 0;
   listener_set_up(my_hostport);
 
@@ -111,7 +111,7 @@ void finish() {
 
 int heartbeat(host_port *who) {
   int connection, err;
-  
+  host_list *incoming;
   err = make_connection_with(who->ip, who->port, &connection);
   if (err < OKAY) {
     handle_host_failure(who);
@@ -119,6 +119,31 @@ int heartbeat(host_port *who) {
   }
   err = HEARTBEAT;
   do_rpc(&err);
+  receive_host_list(connection, &incoming);
+  pthread_mutex_lock(&(my_host->lock));
+  my_host->host->time_stamp++;
+  pthread_mutex_unlock(&(my_host->lock));
+  safe_send(connection, my_host->host, sizeof(host_port));
+  update_job_counts(incoming);
+}
+
+int update_job_counts(host_list *update) {
+  host_list_node *my_runner, *update_runner;
+  
+  do {
+#ifdef CAREFUL
+    if(strcmp(my_runner->host->ip, update_runner->host->ip)) {
+      problem("Heartbeat update did not agree with our current serverlist.\n");
+    }
+#endif
+    if(my_runner->host->time_stamp < update_runner->host->time_stamp) {
+      my_runner->host->time_stamp = update_runner->host->time_stamp;
+      my_runner->host->jobs = update_runner->host->jobs;
+    }
+    my_runner = my_runner->next;
+    update_runner = update_runner->next;
+  } while(my_runner != server_list->head);
+
   
 }
 

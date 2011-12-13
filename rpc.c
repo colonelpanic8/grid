@@ -92,9 +92,11 @@ char *which_rpc(int rpc) {
 
 void rpc_heartbeat(int connection) {
   host_list *incoming;
+  host_port *host;
+  host = malloc(sizeof(host_port));
   send_host_list(connection, server_list);
-  receive_host_list(connection, &incoming);
-  
+  safe_recv(connection, host, sizeof(host_port));
+  free(host);
 }
 
 void rpc_transfer_job(int connection) {
