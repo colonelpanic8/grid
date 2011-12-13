@@ -15,12 +15,14 @@ int runner() {
   int status;
   struct timespec req;
 #ifdef VERBOSE
-  printf("runner intialized\n");
+  printf(BAR);
+  printf("Runner intialized\n");
+  printf(BAR);
 #endif
   req.tv_sec = 1;
   while(1) {
     while(get_job_for_runner(&to_run) < 0) {
-#ifdef VERBOSE
+#ifdef SHOW_RUNNER_STATUS
       printf("No jobs to run, sleeping\n");
 #endif
       nanosleep(&req, NULL);

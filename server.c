@@ -1,3 +1,4 @@
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -590,3 +591,20 @@ host_port *find_job_server() {
 int inform_of_completion(job *completed) {
   return OKAY;
 }
+
+void add_to_queue(job *addJob, queue *Q) {
+  job_list_node *n;
+  n = (job_list_node *)malloc(sizeof(job_list_node));
+  
+  n->entry = addJob;
+  n->next = Q->head;
+  Q->head = n;
+
+  pthread_mutex_lock(&(my_host->lock));
+  my_host->host->jobs++;
+#ifdef VERBOSE
+  printfl("I have %d jobs", my_host->host->jobs);
+#endif
+  pthread_mutex_unlock(&(my_host->lock));
+}
+
