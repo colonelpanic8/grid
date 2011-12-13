@@ -40,7 +40,7 @@ void handle_rpc(int connection) {
   case TRANSFER_JOB:
     rpc_transfer_job(connection);
     break;
-  case HEARTBEAT
+  case HEARTBEAT:
     rpc_heartbeat(connection);
   default:
     break;
@@ -84,13 +84,17 @@ char *which_rpc(int rpc) {
     return TRANSFER_JOB_S;
     break;
   case HEARTBEAT:
-    return HEATBEAT_S;
+    return HEARTBEAT_S;
   default:
     break;
   }
 }
 
 void rpc_heartbeat(int connection) {
+  host_list *incoming;
+  send_host_list(connection, server_list);
+  receive_host_list(connection, &incoming);
+  
 }
 
 void rpc_transfer_job(int connection) {
@@ -160,6 +164,7 @@ void rpc_receive_update(int connection){
   }
   err = OKAY;
   safe_send(connection, &err, sizeof(int));
+  free(old);
 }
 
 void rpc_add_job(int connection) {
@@ -194,7 +199,7 @@ void rpc_add_job(int connection) {
 int send_meta_data(job *ajob) {
   ajob->status = READY; //needs to be changed once we add dependencies
   host_list_node *dest = determine_ownership(ajob);
-  if(dest->host == my_hostport) {
+  if(dest == my_host) {
     add_to_queue(ajob, activeQueue);
   } else {
     transfer_job(dest->host, ajob);
@@ -257,7 +262,7 @@ int write_files(job *ajob, int num_files, data_size *files) {
 
 int get_job_id(job *ajob) {
   pthread_mutex_lock(&count_mutex);
-  ajob->id = my_hostport->location + counter;
+  ajob->id = my_host->host->location + counter;
   counter++;
   pthread_mutex_unlock(&count_mutex);
   return ajob->id;
@@ -365,10 +370,10 @@ void add_to_queue(job *addJob, queue *Q) {
   n->next = Q->head;
   Q->head = n;
 
-  pthread_mutex_lock(&my_hostport_mutex);
-  my_hostport->jobs++;
+  pthread_mutex_lock(&(my_host->lock));
+  my_host->host->jobs++;
 #ifdef VERBOSE
-  printfl("I have %d jobs", my_hostport->jobs);
+  printfl("I have %d jobs", my_host->host->jobs);
 #endif
-  pthread_mutex_unlock(&my_hostport_mutex);
+  pthread_mutex_unlock(&(my_host->lock));
 }

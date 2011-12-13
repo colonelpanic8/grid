@@ -1,4 +1,3 @@
-#define VERBOSE
 void send_identity(int connection);
 int get_servers(char *hostname, int port, int add_slots, host_list **list);
 void listen_for_connection(int *listener);
@@ -8,7 +7,7 @@ void listener_set_up();
 void print_server_list();
 void finish();
 int acquire_add_lock(host_list *list);
-int integrate_host(host_port *host);
+host_list_node *integrate_host(host_port *host);
 int relinquish_add_lock(host_list *list);
 int tell_to_unlock(int connection);
 
@@ -58,11 +57,11 @@ host_list_node *determine_ownership(job *ajob);
 void add_host_to_list_by_location(host_port *host, host_list *list);
 host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *where_to_add);
 void clone_host_list(host_list *old_list, host_list *new_list);
-host_port* find_host_in_list(char *hostname, host_list *list);
-host_port* get_hostport_from_connection(int connection);
+host_port *find_host_in_list(char *hostname, host_list *list);
+host_port *get_hostport_from_connection(int connection);
 host_list *new_host_list();
 void remove_from_host_list(host_port *removed_host_port, host_list *list);
-host_port* find_host_in_list(char *hostname, host_list *list);
+host_port *find_host_in_list(char *hostname, host_list *list);
 int receive_host_list(int connection, host_list **list);
 void free_host_list(host_list *list, int flag);
 int send_host_list(int connection, host_list *list);

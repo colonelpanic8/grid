@@ -1,3 +1,4 @@
+#define VERBOSE
 #define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
 #define problem(...)       fprintf(stderr, __VA_ARGS__)
 #define printfl(...)       printf(__VA_ARGS__); printf("\n")
@@ -68,14 +69,14 @@
 
 typedef struct _host_port {
   int port, jobs;
-  unsigned int location;
+  unsigned int location, time_stamp;
   char ip[INET_ADDRSTRLEN];
 } host_port;
 
 typedef struct _host_list_node {
   host_port *host;
   struct _host_list_node *next;
-  pthread_mutex_t lock
+  pthread_mutex_t lock;
 } host_list_node;
 
 typedef struct _host_list {

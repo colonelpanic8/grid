@@ -26,8 +26,7 @@ pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list;
 int num_servers;
 
-pthread_mutex_t my_hostport_mutex = PTHREAD_MUTEX_INITIALIZER;
-host_port *my_hostport;
+host_list_node *my_host;
 
 queue *activeQueue;
 queue *backupQueue;
@@ -41,6 +40,7 @@ char who[INET_ADDRSTRLEN];
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   pthread_t runner_thread;
+  host_port *my_hostport;
   
   //setup jobs folder
   if(mkdir("./jobs", S_IRWXU)) {
@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
 
   if(argc < 3) {
     server_list = new_host_list(my_hostport);
+    my_host = server_list->head;
     print_server_list();
   } else {
     if(get_servers(argv[2], atoi(argv[3]), 1, &server_list) < 0) {
@@ -74,7 +75,7 @@ int main(int argc, char **argv) {
       finish();
       exit(-1);
     }
-    integrate_host(my_hostport);
+    my_host = integrate_host(my_hostport);
     print_server_list();
     distribute_update();
     relinquish_add_lock(server_list);
@@ -84,7 +85,7 @@ int main(int argc, char **argv) {
   pthread_join(runner_thread, NULL);
 }
 
-int integrate_host(host_port *host) {
+host_list_node *integrate_host(host_port *host) {
   host_list_node *runner, *max;
   int max_distance, dist;
   max_distance = 0;
@@ -99,7 +100,7 @@ int integrate_host(host_port *host) {
     runner = runner->next;
   } while(runner != server_list->head);
   host->location = max->host->location + (max_distance/2);
-  add_to_host_list(host, max);
+  return add_to_host_list(host, max);
 }
 
 
@@ -109,15 +110,14 @@ void finish() {
 
 int heartbeat(host_port *who) {
   int connection, err;
+  
   err = make_connection_with(who->ip, who->port, &connection);
   if (err < OKAY) {
-    handle_host_failure(runner->host);
+    handle_host_failure(who);
     return FAILURE;
   }
   err = HEARTBEAT;
   do_rpc(&err);
-  
-  safe_recv(connection, 
   
 }
 
@@ -126,7 +126,7 @@ int acquire_add_lock(host_list *list) {
   host_list_node *runner;
   runner = list->head;
   do {
-    if(runner->host != my_hostport) {
+    if(runner = my_host) {
       err = make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY){
 	handle_host_failure(runner->host);
@@ -149,7 +149,7 @@ int relinquish_add_lock(host_list *list) {
   host_list_node *runner;
   runner = list->head;
   do {
-    if(runner->host != my_hostport) { //possibly needs to be changed give the current update structure
+    if(runner != my_host) { //possibly needs to be changed give the current update structure
       //consider changing updates to work by sending only the identity of the current node?
       err = make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY) {
@@ -231,11 +231,11 @@ void distribute_update() {
   current_node = server_list->head;
 
   do {
-    if(strcmp(current_node->host->ip, my_hostport->ip)) {
+    if(strcmp(current_node->host->ip, my_host->host->ip)) {
       err = make_connection_with(current_node->host->ip, 
-					  current_node->host->port, &connection);
+				 current_node->host->port, &connection);
       if (err < OKAY) handle_host_failure(current_node->host);
-      err = announce(connection, my_hostport);
+      err = announce(connection, my_host->host);
       close(connection);
     }
     current_node = current_node->next;
@@ -409,8 +409,10 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
   current_node = server_list->head;
 
   do {
-    if(strcmp(current_node->host->ip,my_hostport->ip)) {
-      printf("Notifying %s and my ip is %s\n",current_node->host->ip,my_hostport->ip);
+    if(strcmp(current_node->host->ip,my_host->host->ip)) {
+#ifdef VERBOSE
+      printf("Notifying %s and my ip is %s\n", current_node->host->ip,my_host->host->ip);
+#endif
       err = make_connection_with(current_node->host->ip, 
 					  current_node->host->port, &connection);
       if (err < OKAY) { 
@@ -484,7 +486,7 @@ void listener_set_up() {
   pthread_t thread;
   int *listener, connect_result;
   listener = malloc(sizeof(int));
-  connect_result = set_up_listener(my_hostport->port, listener);
+  connect_result = set_up_listener(my_host->host->port, listener);
   pthread_create(&thread, NULL, (void *(*)(void *))listen_for_connection, listener);
 }
 
@@ -521,10 +523,12 @@ job *get_local_job() {
      current_node = current_node->next;
   }
   if(current_node) {
-    my_hostport->jobs--;
+    pthread_mutex_lock(&my_host->lock);
+    my_host->host->jobs--;
 #ifdef VERBOSE
-    printfl("I have %d jobs", my_hostport->jobs);
+    printfl("I have %d jobs", my_host->host->jobs);
 #endif
+    pthread_mutex_unlock(&my_host->lock);
     current_node->entry->status = RUNNING;
     return current_node->entry;
   }
