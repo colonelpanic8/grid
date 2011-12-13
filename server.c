@@ -121,7 +121,7 @@ int heartbeat(host_port *who) {
   do_rpc(&err);
   receive_host_list(connection, &incoming);
   pthread_mutex_lock(&(my_host->lock));
-  my_host->host->timestamp++;
+  my_host->host->time_stamp++;
   pthread_mutex_unlock(&(my_host->lock));
   safe_send(connection, my_host->host, sizeof(host_port));
   update_job_counts(incoming);
