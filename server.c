@@ -124,7 +124,9 @@ void finish(int sig) {
   free_queue(activeQueue);
   free_queue(backupQueue);
   free_host_list(server_list, 1);
-  free_host_list(failed_hosts, 1);
+  if(failed_hosts) {
+    free_host_list(failed_hosts, 1);
+  }
   pthread_mutex_destroy(&count_mutex);
   pthread_mutex_destroy(&server_list_mutex);
   pthread_mutex_destroy(&failure_mutex);

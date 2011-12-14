@@ -102,7 +102,7 @@ void inform_of_failure(int connection, host_port *failed_host) {
   }
   err = safe_send(connection,failed_host,sizeof(host_port));
   if (err < 0) {
-    problem("handle_host_failure inside a handle_host failure\n");
+    problem("handle_failure inside a handle_host failure\n");
     problem("failed to send\n");
     //handle_host_failure_by_connection(connection);
     return; 
