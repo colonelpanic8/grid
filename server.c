@@ -26,11 +26,11 @@ int counter = 0;
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list = NULL;
 
-pthread_mutex_t failure_mutex;
+pthread_mutex_t failure_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *failed_hosts = NULL;
 
-
 int num_servers, *listener;
+pthread_t *listener_thread;
 
 host_list_node *my_host = NULL;
 host_list_node *heartbeat_dest = NULL;
@@ -125,6 +125,9 @@ void finish(int sig) {
   free_queue(backupQueue);
   free_host_list(server_list, 1);
   free_host_list(failed_hosts, 1);
+  pthread_mutex_destroy(&count_mutex);
+  pthread_mutex_destroy(&server_list_mutex);
+  pthread_mutex_destroy(&failure_mutex);
   exit(0);
 }
 
@@ -393,6 +396,7 @@ int get_servers(char *hostname, int port, int add_slots, host_list **list) {
 void listener_set_up(host_port *info) {
   pthread_t thread;
   int connect_result;
+  
   listener = malloc(sizeof(int));
   connect_result = set_up_listener(info->port, listener);
   pthread_create(&thread, NULL, (void *(*)(void *))listen_for_connection, listener);
