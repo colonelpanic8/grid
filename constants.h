@@ -2,6 +2,11 @@
 #define SHOW_RUNNER_STATUS
 #undef SHOW_RUNNER_STATUS
 #define GREEDY
+#define HEARTBEAT
+#undef HEARTBEAT
+
+#define NOTIFY_OTHERS
+
 #define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
 #define problem(...)       fprintf(stderr, __VA_ARGS__)
 #define printfl(...)       printf(__VA_ARGS__); printf("\n")

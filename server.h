@@ -57,25 +57,25 @@ void queue_setup();
 host_list_node *determine_ownership(job *ajob);
 void add_host_to_list_by_location(host_port *host, host_list *list);
 host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *where_to_add);
-void clone_host_list(host_list *old_list, host_list *new_list);
+host_list *new_host_list(host_port *initial_host_port);
 host_port *find_host_in_list(char *hostname, host_list *list);
 host_port *get_hostport_from_connection(int connection);
-host_list *new_host_list();
-void remove_from_host_list(host_port *removed_host_port, host_list *list);
-host_port *find_host_in_list(char *hostname, host_list *list);
 int receive_host_list(int connection, host_list **list);
 void free_host_list(host_list *list, int flag);
 int send_host_list(int connection, host_list *list);
 void host_port_copy(host_port *src, host_port *dst);
 
 // failure functions
-void handle_host_failure_by_connection(int connection);
-void handle_host_failure(host_port *failed_host);
-void local_handle_failure(host_port *failed_host);
+void handle_failure(char *ip, int flag);
+void local_handle_failure(host_list_node *failed_host_prev);
+host_list_node *find_prev_host_in_list(char *hostname, host_list *list);
+int remove_from_host_list(host_list_node *prev, host_list *list);
+host_list_node *add_node_to_host_list(host_list_node *added_node, host_list_node *where_to_add);
+host_list *new_host_list_by_node(host_list_node *node);
 void notify_others_of_failure(host_port *failed_host);
 void inform_of_failure(int connection, host_port *failed_host);
 void update_q_host_failed (host_port* failed_host, queue *Q);
-void replace_host_in_replica_list(host_port* failed_host, job* job);
+
 
 // job handling functions
 void send_job(job *job_to_send, int connection);

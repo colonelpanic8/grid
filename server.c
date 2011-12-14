@@ -25,6 +25,11 @@ int counter = 0;
 
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list = NULL;
+
+pthread_mutex_t failure_mutex;
+host_list *failed_hosts = NULL;
+
+
 int num_servers, *listener;
 
 host_list_node *my_host = NULL;
@@ -37,7 +42,10 @@ pthread_mutex_t d_add_mutex = PTHREAD_MUTEX_INITIALIZER;
 int d_add_lock = UNLOCKED;
 char who[INET_ADDRSTRLEN];
 
+//Not really viewed as separate from server.c, simply server to divide
+//the functions so they are more easily viewed
 #include "rpc.c"
+#include "failure.c"
 
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
@@ -122,7 +130,7 @@ int heartbeat() {
     host_list *incoming;
     err = make_connection_with(heartbeat_dest->host->ip, heartbeat_dest->host->port, &connection);
     if (err < OKAY) {
-      handle_host_failure(heartbeat_dest->host);
+      handle_failure(heartbeat_dest->host->ip, 1);
       return FAILURE;
     }
     err = HEARTBEAT;
@@ -167,7 +175,6 @@ int acquire_add_lock(host_list *list) {
     if(runner != my_host) {
       err = make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY){
-	handle_host_failure(runner->host);
 	return FAILURE;
       }
       err = request_add_lock(connection);
@@ -191,7 +198,7 @@ int relinquish_add_lock(host_list *list) {
       //consider changing updates to work by sending only the identity of the current node?
       err = make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY) {
-	handle_host_failure(runner->host);
+	handle_failure(runner->host->ip, 1);
       } else {
 	err = tell_to_unlock(connection);
       }
@@ -222,14 +229,14 @@ int transfer_job(host_port *host, job *to_send) {
   int connection, err;
   err = make_connection_with(host->ip, host->port, &connection);
   if (err < OKAY) {
-    handle_host_failure(host);
+    handle_failure(host->ip, 1);
     return FAILURE;
   }
   err = TRANSFER_JOB;
   do_rpc(&err);
   err = safe_send(connection, to_send, sizeof(job));
   if (err < OKAY) {
-    handle_host_failure(host);
+    problem("Transfer Job failed\n");
     return FAILURE;
   }
   return 0;
@@ -240,15 +247,15 @@ int announce(int connection, host_port *send) {
   status = do_rpc(&status);
   if(status < 0){
     problem("Failed to acknowledge announce\n");
-    handle_host_failure_by_connection(connection);
+    problem("Send Failed\n");
     return status;
   }
   status = safe_send(connection, send, sizeof(host_port));
-  if(status < 0) handle_host_failure_by_connection(connection);
+  if(status < 0) problem("Send Failed\n");
   return status;
 }
 
-int send_update(int connection) {
+int send_update(int connection) { //No longer used
   int okay;
   int err = RECEIVE_UPDATE;
   err = do_rpc(&err);
@@ -272,7 +279,7 @@ void distribute_update() {
     if(strcmp(current_node->host->ip, my_host->host->ip)) {
       err = make_connection_with(current_node->host->ip, 
 				 current_node->host->port, &connection);
-      if (err < OKAY) handle_host_failure(current_node->host);
+      if (err < OKAY) handle_failure(current_node->host->ip, 1);
       err = announce(connection, my_host->host);
       close(connection);
     }
@@ -297,7 +304,7 @@ int send_host_list(int connection, host_list *list) {
   
   //pack the hosts into an array
   for(err = 0; err < num; err++) {
-    host_port_copy(runner->host, &hosts[err]);
+    memcpy(&hosts[err], runner->host, sizeof(host_port));
     runner = runner->next;
   }
   
@@ -326,23 +333,15 @@ int receive_host_list(int connection, host_list **list) {
   //we cant just use the memory we allocated earlier as an array
   //or else it is impossible to free individual elements of the list
   temp = malloc(sizeof(host_port));
-  host_port_copy(&hosts[0], temp);
+  memcpy(temp, &hosts[0], sizeof(host_port));
   *list = new_host_list(temp);
   runner = (*list)->head;
   for(i = 1; i < num; i++) {
     temp = malloc(sizeof(host_port));
-    host_port_copy(&hosts[i], temp);
+    memcpy(temp, &hosts[i], sizeof(host_port));
     runner = add_to_host_list(temp, runner);
   }
   return OKAY;
-}
-
-void host_port_copy(host_port *src, host_port *dst) {
-  dst->jobs = src->jobs;
-  dst->time_stamp;
-  dst->port = src->port;
-  dst->location = src->location;
-  strcpy(dst->ip, src->ip);
 }
 
 void free_host_list(host_list *list, int flag) {
@@ -374,126 +373,6 @@ host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *whe
   new_node->host = added_host_port;
   where_to_add->next = new_node;
   return new_node;
-}
-
-void remove_from_host_list(host_port *removed_host_port, host_list *list) {
-  host_list_node *current_node;
-  host_list_node *node_to_remove;
-  if(list->head->host == removed_host_port) {
-    node_to_remove = list->head;
-    list->head = node_to_remove->next;
-    list->head->host->location = 0;
-    free(node_to_remove);
-    free(removed_host_port);
-    return;}
-  current_node = list->head;
-  do { 
-    if (current_node->next->host == removed_host_port) { 
-      node_to_remove = current_node->next;
-      current_node->next = current_node->next->next; 
-      free(node_to_remove);
-      free(removed_host_port);
-      return;
-    }
-    current_node = current_node -> next;
-  } while(current_node != list->head);
-}
-
-host_port* find_host_in_list(char *hostname, host_list *list) {
-  host_list_node *current_node;
-  current_node = list->head;
-  do { 
-    if (!strcmp(current_node->host->ip,hostname)) return current_node->host;
-    current_node = current_node->next;
-  } while(current_node != list->head) ;
-}
-
-host_port* get_hostport_from_connection(int connection) {
-  char failed_host_ip[INET_ADDRSTRLEN];
-  get_ip(connection,failed_host_ip);
-  return find_host_in_list(failed_host_ip,server_list);
-}
-
-void clone_host_list(host_list *old_list, host_list *new_list) {
-  new_list = new_host_list(old_list->head->host);
-  host_list_node *old_node;
-  old_node = old_list->head;
-  host_list_node *new_node;
-  new_node = new_list->head;
-  host_list_node *new_successor;
-  while(old_node != old_list->head) { 
-    new_node->host = old_node->host;
-    new_successor = (host_list_node *)malloc(sizeof(host_list_node));
-    new_node->next = new_successor;
-    old_node = old_node->next;
-    new_node = new_node->next;
-  }
-}
-
-void handle_host_failure_by_connection(int connection) { // failed on a send
-  host_port *failed_host;
-  failed_host = get_hostport_from_connection(connection);
-  handle_host_failure(failed_host);
-}
-
-void handle_host_failure(host_port *failed_host) { // failed on a connect
-  host_port *copy;
-  copy = malloc(sizeof(host_port));
-  host_port_copy(failed_host, copy);
-  problem("%s at %d failed\n", failed_host->ip, failed_host->location);
-  local_handle_failure(failed_host);
-  notify_others_of_failure(copy);
-}
-
-void local_handle_failure(host_port *failed_host) {
-  remove_from_host_list(failed_host,server_list);
-  update_q_host_failed(failed_host,activeQueue); //backup queue is received by RPC
-}
-
-void notify_others_of_failure(host_port *failed_host) { // tell everyone
-  int connection = 0;
-  int err;
-  host_list_node* current_node;
-  current_node = server_list->head;
-
-  do {
-    if(strcmp(current_node->host->ip,my_host->host->ip)) {
-#ifdef VERBOSE
-      printf("Notifying %s and my ip is %s\n", current_node->host->ip,my_host->host->ip);
-#endif
-      err = make_connection_with(current_node->host->ip, 
-					  current_node->host->port, &connection);
-      if (err < OKAY) { 
-	handle_host_failure(current_node->host);
-      } else { 
-	inform_of_failure(connection,failed_host);
-      }
-    }
-    current_node = current_node->next;
-  } while(current_node != server_list->head);
-}
-
-void inform_of_failure(int connection, host_port *failed_host) {
-  int err = INFORM_OF_FAILURE;
-  err = do_rpc(&err);
-  if (err < 0) {
-    handle_host_failure_by_connection(connection); 
-    return; 
-  }
-  err = safe_send(connection,failed_host,sizeof(host_port));
-  if (err < 0) {
-    problem("failed to send");
-    handle_host_failure_by_connection(connection);
-    return; 
-  }
-}
-
-void update_q_host_failed (host_port* failed_host, queue *Q) {
-   job_list_node *current;
-   current = Q->head;
-   while(current != NULL) {
-       current = current->next;
-   } 
 }
 
 void print_server_list() {
@@ -615,7 +494,7 @@ int get_remote_job(job **ptr) {
     }
     err = make_connection_with(server->ip, server->port, &connection);
     if (err < OKAY) { 
-      handle_host_failure(server);
+      handle_failure(server->ip, 1);
       return FAILURE;
     }
     err = SERVE_JOB;
@@ -682,4 +561,3 @@ void add_to_queue(job *addJob, queue *Q) {
   pthread_mutex_unlock(&(Q->tail_lock));
   pthread_mutex_unlock(&(n->lock));
 }
-
