@@ -48,7 +48,9 @@ void handle_rpc(int connection) {
     break;
   }
   close(connection);
-  print_server_list();
+  if(rpc != HEARTBEAT) { 
+    print_server_list();
+  }
 }
 
 char *which_rpc(int rpc) {
