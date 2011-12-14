@@ -340,6 +340,7 @@ int receive_host_list(int connection, host_list **list) {
 
 void host_port_copy(host_port *src, host_port *dst) {
   dst->jobs = src->jobs;
+  dst->time_stamp;
   dst->port = src->port;
   dst->location = src->location;
   strcpy(dst->ip, src->ip);

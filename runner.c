@@ -31,6 +31,7 @@ int runner() {
     printf("running %d\n", to_run->id);
     status = run_a_job(to_run);
     if(status < 0) {
+      
     } else {
       //handle job failure
     }
@@ -88,7 +89,7 @@ int run_a_job(job *to_run) {
     problem("strerror says\n");
     error = strerror(errno);
     problem("%s\n", error);
-    return FAILURE;
+    exit(-1);
   }
   wait(NULL);
 }
