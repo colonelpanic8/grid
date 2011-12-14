@@ -121,7 +121,7 @@ void rpc_transfer_job(int connection) {
   if(err < 0) {
     problem("Job transfer failed.\n");
   } else {
-    add_to_queue(incoming, activeQueue); //will need to change later for dependencies
+    add_to_active_queue(incoming);
   }
 }
 

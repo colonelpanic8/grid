@@ -4,6 +4,9 @@ void handle_failure(char *ip, int flag) {
   pthread_mutex_lock(&failure_mutex);
   
   if(failed_host_node_prev = find_prev_host_in_list(ip, server_list)) {
+#ifdef VERBOSE
+    printf("Host failure %s\n", ip);
+#endif
     failed_host = failed_host_node_prev->next->host;
     local_handle_failure(failed_host_node_prev);
 #ifdef NOTIFY_OTHERS

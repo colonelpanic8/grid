@@ -124,7 +124,7 @@ void finish(int sig) {
 #ifdef VERBOSE
     printf("Killing listener thread.\n");
 #endif
-    pthread_kill(*listener_thread, SIGINT);
+    pthread_kill(*listener_thread, SIGABRT);
   }
 #ifdef VERBOSE
   printf("Closing listener socket.\n");

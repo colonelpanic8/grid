@@ -50,6 +50,7 @@ int get_job_id(job *ajob);
 int write_files(job *ajob, int num_files, data_size *files);
 void copy_job(host_port *hip, job *cop_job);
 void add_replica(host_port *host, job *rep_job);
+void add_to_active_queue(job *item);
 void add_to_queue(job *addJob, queue *Q);
 void queue_setup();
 void free_job_node(job_list_node *item);

@@ -136,26 +136,10 @@ int send_meta_data(job *ajob) {
   ajob->status = READY; //needs to be changed once we add dependencies
   host_list_node *dest = determine_ownership(ajob);
 #ifdef GREEDY
-  add_to_queue(ajob, activeQueue);
-  pthread_mutex_lock(&(my_host->lock));
-  my_host->host->jobs++;
-#ifdef VERBOSE
-  printfl("I have %d jobs", my_host->host->jobs);
-#endif
-  pthread_mutex_unlock(&(my_host->lock));
+  add_to_active_queue(ajob);
 #else
   if(dest == my_host) {
-    add_to_queue(ajob, activeQueue);
-    
-    //
-    pthread_mutex_lock(&(my_host->lock));
-    my_host->host->jobs++;
-#ifdef VERBOSE
-    printfl("I have %d jobs", my_host->host->jobs);
-#endif
-    pthread_mutex_unlock(&(my_host->lock));
-    //
-
+    add_to_active_queue(ajob);
   } else {
     transfer_job(dest->host, ajob);
     free(ajob);
@@ -296,6 +280,15 @@ void update_q_job_complete (int jobid, queue *Q) {
        }
        current = current->next;
    } 
+}
+
+void add_to_active_queue(job *item) {
+  add_to_queue(item, activeQueue); //will need to change later for dependencies
+  my_host->host->jobs++;
+#ifdef VERBOSE
+  printfl("I have %d jobs", my_host->host->jobs);
+#endif
+  pthread_mutex_unlock(&(my_host->lock));
 }
 
 void add_to_queue(job *addJob, queue *Q) {
