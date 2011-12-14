@@ -29,3 +29,4 @@ clean:
 	rm server
 	rm client
 	rm hash_test
+	rm -r jobs
