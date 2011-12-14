@@ -1,10 +1,9 @@
+//These are used to control program behavior
 #define VERBOSE
 #define SHOW_RUNNER_STATUS
 #undef SHOW_RUNNER_STATUS
 #define GREEDY
-#define HEARTBEAT
-#undef HEARTBEAT
-
+#define HEARTBEATx
 #define NOTIFY_OTHERS
 
 #define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
@@ -68,7 +67,7 @@
 #define HEARTBEAT_S "Heartbeat"
 
 //Job Status
-#define NOT_READY (-1)
+#define NOT_READY 3
 #define READY 0
 #define RUNNING 1
 #define COMPLETED 2

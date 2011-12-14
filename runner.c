@@ -33,9 +33,11 @@ int runner() {
     printf("running %d\n", to_run->id);
     status = run_a_job(to_run);
     if(status < 0) {
+      to_run->status = status;
       
     } else {
-      //handle job failure
+      //Job Complete
+      to_run->status = COMPLETED;
     }
   }
 }
@@ -55,7 +57,8 @@ int run_a_job(job *to_run) {
       problem("Unsuccessful fork\n");
       return FAILURE;
     }
-    return OKAY;
+    waitpid(forkint, &err, 0);
+    return err;
   } else {
     sprintf(inpath, "./jobs/%d/", to_run->id);
     chdir(inpath);
@@ -73,22 +76,22 @@ int run_a_job(job *to_run) {
       problem("output file failed to open, this is very bad std out will not be redirected!!!!!!\n");
     }
     if(dup2(fileno(out), STDOUT_FILENO) < 0) {
-      problem("dup2 failed, this is very bad, stdout will not be redirected!!!!!!!!!!!!!\n");
+      problem("dup2 failed, this is very bad (output)\n");
     }
     sprintf(inpath, "input.txt", to_run->id);
     in = fopen(inpath, "r");
     if(!in) {
 #ifdef VERBOSE
-      //problem("input file failed to open, proceeding without file for standard in");
+      problem("No input file\n");
 #endif
     } else {
       if(dup2(fileno(out), STDIN_FILENO) < 0) {
-	problem("dup2 failed, this is very bad, stdin will not be redirected!!!!!!!!!!!!!\n");
+	problem("dup2 failed (input)\n");
       }
     }
     execvp(argv[0], argv);
     problem("Fatal error for job %d,execvp failed to run with errno: %d\n", to_run->id, errno);
-    problem("strerror says\n");
+    problem("strerror says:\n");
     error = strerror(errno);
     problem("%s\n", error);
     exit(-1);
