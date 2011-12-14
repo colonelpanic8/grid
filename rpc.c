@@ -27,9 +27,6 @@ void handle_rpc(int connection) {
   case RECEIVE_UPDATE:
     rpc_receive_update(connection);
     break;
-  case RECEIVE_JOB_COPY:
-    rpc_receive_job_copy(connection);
-    break;
   case INFORM_OF_FAILURE:
     rpc_inform_of_failure(connection);
     break;
@@ -76,9 +73,6 @@ char *which_rpc(int rpc) {
     break;
   case RECEIVE_UPDATE:
     return RECEIVE_UPDATE_S;
-    break;
-  case RECEIVE_JOB_COPY:
-    return RECEIVE_JOB_COPY_S;
     break;
   case INFORM_OF_FAILURE:
     return INFORM_OF_FAILURE_S;
@@ -240,7 +234,6 @@ void rpc_serve_job(int connection) {
     do_rpc(&msg); //not doing an rpc just shorthand for sending an int
     send_job(ajob, connection);
   }
-  do_rpc(&msg);
 }
 
 void send_job(job *job_to_send,int connection) {
@@ -249,12 +242,6 @@ void send_job(job *job_to_send,int connection) {
   
 }
 
-void rpc_receive_job_copy(int connection){
-}
-
-void rpc_request_job(int connection) { 
-  
-}
 
 void rpc_inform_of_completion(int connection) {
   int err = OKAY;
