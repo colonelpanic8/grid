@@ -11,17 +11,7 @@ void queue_setup() {
   pthread_mutex_init(&(backupQueue->tail_lock), NULL); 
 }
 
-int get_job_for_runner(job **ptr) {
-  if(*ptr = get_local_job()) {
-    return OKAY;
-  }
-  if(get_remote_job(ptr) < 0) {
-    return FAILURE;
-  }
-  return OKAY;
-}
-
-job *get_local_job() {
+job *get_local_job() { //dequeue local job
   job_list_node *current_node;
   current_node = activeQueue->head;
   while (current_node && current_node->entry && current_node->entry->status != READY) {
@@ -51,6 +41,97 @@ job *get_local_job() {
   }
   
   return NULL;
+}
+
+void print_job_queue(queue *Q) {
+  
+}
+
+void redistribute_jobs() {
+  
+}
+
+int transfer_job(host_port *host, job *to_send) {
+  int connection, err;
+  err = make_connection_with(host->ip, host->port, &connection);
+  if (err < OKAY) {
+    handle_failure(host->ip, 1);
+    return FAILURE;
+  }
+  err = TRANSFER_JOB;
+  do_rpc(&err);
+  err = safe_send(connection, to_send, sizeof(job));
+  if (err < OKAY) {
+    problem("Transfer Job failed\n");
+    return FAILURE;
+  }
+  return 0;
+}
+
+host_list_node *determine_ownership(job *ajob) {
+  char buffer[BUFFER_SIZE];
+  int job_hash;
+  host_list_node *runner;
+  job_hash = hash(ajob->name, ajob->id);
+#ifdef VERBOSE
+  printf("%s, %d hashes to %d\n", ajob->name, ajob->id, job_hash);
+#endif
+  runner = server_list->head;
+  while(runner->next->host->location <= job_hash && runner->next->host->location != 0) {
+    runner = runner->next;
+  }
+#ifdef VERBOSE
+  printf("So it belongs to %s\n", runner->host->ip);
+#endif
+  return runner;
+}
+
+int write_files(job *ajob, int num_files, data_size *files) {
+  char buffer[BUFFER_SIZE], back[BUFFER_SIZE];
+  FILE *temp;
+  int i;
+  sprintf(buffer,"./jobs/%d/", ajob->id); 
+  if(mkdir(buffer, S_IRWXU)) {
+    if(errno == EEXIST) {
+#ifdef VERBOSE
+      problem("directory already exists...\n");
+#endif
+    } else {
+      problem("mkdir failed with %d\n", errno);
+    }
+  }
+  for(i = 0; i < num_files; i++) {
+    printf("%s\n", files[i].name); 
+    sprintf(buffer,"jobs/%d/%s", ajob->id, files[i].name);
+    temp = NULL;
+    temp = fopen(buffer, "w");
+    if(temp) {
+      fwrite(files[i].data, files[i].size, 1, temp);
+    } else {
+      problem("failed to open file %s, errno: %d\n", files[i].name, errno);
+    }
+    fclose(temp);
+
+    //
+    char mode[] = "0777";
+    int i;
+    i = strtol(mode, 0, 8);
+    if (chmod (buffer,i) < 0)
+      {
+	problem("chmod failed");
+      }
+    //
+  }
+}
+
+int get_job_for_runner(job **ptr) {
+  if(*ptr = get_local_job()) {
+    return OKAY;
+  }
+  if(get_remote_job(ptr) < 0) {
+    return FAILURE;
+  }
+  return OKAY;
 }
 
 int get_remote_job(job **ptr) {
@@ -108,6 +189,18 @@ host_port *find_job_server() {
 
 int inform_of_completion(job *completed) {
   return OKAY;
+}
+
+void update_q_job_complete (int jobid, queue *Q) {
+   job_list_node *current;
+   current = Q->head;
+   while(current != NULL) {
+       if (contains(current->entry, jobid)) {
+	 remove_dependency(current->entry, jobid);
+         //check_avail(current->entry);
+       }
+       current = current->next;
+   } 
 }
 
 void add_to_queue(job *addJob, queue *Q) {

@@ -14,7 +14,7 @@ hash_test: hash.o hash_test.o
 
 network.o: network.c network.h constants.h
 
-server.o: server.c network.h rpc.c server.h rpc.c constants.h
+server.o: server.c network.h server.h rpc.c jobs.c failure.c constants.h
 
 runner.o: runner.c runner.h constants.h server.h
 

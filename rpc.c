@@ -225,61 +225,6 @@ int send_meta_data(job *ajob) {
 #endif
 }
 
-host_list_node *determine_ownership(job *ajob) {
-  char buffer[BUFFER_SIZE];
-  int job_hash;
-  host_list_node *runner;
-  job_hash = hash(ajob->name, ajob->id);
-#ifdef VERBOSE
-  printf("%s, %d hashes to %d\n", ajob->name, ajob->id, job_hash);
-#endif
-  runner = server_list->head;
-  while(runner->next->host->location <= job_hash && runner->next->host->location != 0) {
-    runner = runner->next;
-  }
-#ifdef VERBOSE
-  printf("So it belongs to %s\n", runner->host->ip);
-#endif
-  return runner;
-}
-
-int write_files(job *ajob, int num_files, data_size *files) {
-  char buffer[BUFFER_SIZE], back[BUFFER_SIZE];
-  FILE *temp;
-  int i;
-  sprintf(buffer,"./jobs/%d/", ajob->id); 
-  if(mkdir(buffer, S_IRWXU)) {
-    if(errno == EEXIST) {
-#ifdef VERBOSE
-      problem("directory already exists...\n");
-#endif
-    } else {
-      problem("mkdir failed with %d\n", errno);
-    }
-  }
-  for(i = 0; i < num_files; i++) {
-    printf("%s\n", files[i].name); 
-    sprintf(buffer,"jobs/%d/%s", ajob->id, files[i].name);
-    temp = NULL;
-    temp = fopen(buffer, "w");
-    if(temp) {
-      fwrite(files[i].data, files[i].size, 1, temp);
-    } else {
-      problem("failed to open file %s, errno: %d\n", files[i].name, errno);
-    }
-    fclose(temp);
-
-    //
-    char mode[] = "0777";
-    int i;
-    i = strtol(mode, 0, 8);
-    if (chmod (buffer,i) < 0)
-      {
-	problem("chmod failed");
-      }
-    //
-  }
-}
 
 int get_job_id(job *ajob) {
   pthread_mutex_lock(&count_mutex);
@@ -349,18 +294,6 @@ void rpc_inform_of_failure(int connection) {
 }
 
 // If a job is complete then we need to update the queue to make jobs that depended on that job available.
-
-void update_q_job_complete (int jobid, queue *Q) {
-   job_list_node *current;
-   current = Q->head;
-   while(current != NULL) {
-       if (contains(current->entry, jobid)) {
-	 remove_dependency(current->entry, jobid);
-         //check_avail(current->entry);
-       }
-       current = current->next;
-   } 
-}
 
 int contains(job *current, int jobid) {
   int i = 0;

@@ -42,7 +42,7 @@ pthread_mutex_t d_add_mutex = PTHREAD_MUTEX_INITIALIZER;
 int d_add_lock = UNLOCKED;
 char who[INET_ADDRSTRLEN];
 
-//Not really viewed as separate from server.c, simply server to divide
+//Not really viewed as separate from server.c, simply to divide
 //the functions so they are more easily viewed
 #include "rpc.c"
 #include "failure.c"
@@ -225,23 +225,6 @@ int request_add_lock(int connection) {
   num = FAILURE;
   safe_recv(connection, &num, sizeof(int));
   return num;
-}
-
-int transfer_job(host_port *host, job *to_send) {
-  int connection, err;
-  err = make_connection_with(host->ip, host->port, &connection);
-  if (err < OKAY) {
-    handle_failure(host->ip, 1);
-    return FAILURE;
-  }
-  err = TRANSFER_JOB;
-  do_rpc(&err);
-  err = safe_send(connection, to_send, sizeof(job));
-  if (err < OKAY) {
-    problem("Transfer Job failed\n");
-    return FAILURE;
-  }
-  return 0;
 }
 
 int announce(int connection, host_port *send) {

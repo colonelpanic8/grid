@@ -10,12 +10,13 @@ int acquire_add_lock(host_list *list);
 host_list_node *integrate_host(host_port *host);
 int relinquish_add_lock(host_list *list);
 int tell_to_unlock(int connection);
+int heartbeat();
 
 
-//RPC
+//RPC handles
 void handle_rpc(int connection);
 char *which_rpc(int rpc);
-
+//RPCs
 void rpc_heartbeat(int connection);
 void rpc_unlock(int connection);
 void rpc_receive_announce(int connection);
@@ -32,14 +33,14 @@ void rpc_request_add_lock(int connection);
 void rpc_transfer_job(int connection);
 
 
-int heartbeat();
 int update_job_counts(host_list *update);
 int get_remote_job(job **a_job);
 job *get_local_job();
 host_port *find_job_server();
+void redistribute_jobs();
+void print_job_queue(queue *Q);
 int transfer_job(host_port *host, job *to_send);
 int announce(int connection, host_port *host);
-void failure_notify(host_port *fail);
 void update_q_job_complete (int jobid, queue *Q);
 int contains(job *current, int jobid);
 void remove_dependency(job *current, int jobid);
