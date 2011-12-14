@@ -119,14 +119,29 @@ host_list_node *integrate_host(host_port *host) {
 
 void finish(int sig) {
   printf("\nFinishing\n");
+#ifdef VERBOSE
+  printf("Closing listener\n");
+#endif
   close(*listener);
   free(listener);
+#ifdef VERBOSE
+  printf("Freeing Queues\n");
+#endif
   free_queue(activeQueue);
   free_queue(backupQueue);
+#ifdef VERBOSE
+  printf("Freeing Server List\n");
+#endif
   free_host_list(server_list, 1);
   if(failed_hosts) {
+#ifdef VERBOSE
+    printf("Freeing Failed Hosts List\n");
+#endif
     free_host_list(failed_hosts, 1);
   }
+#ifdef VERBOSE
+  printf("Destroying Mutexes\n");
+#endif
   pthread_mutex_destroy(&count_mutex);
   pthread_mutex_destroy(&server_list_mutex);
   pthread_mutex_destroy(&failure_mutex);
@@ -355,6 +370,7 @@ host_list *new_host_list(host_port *initial_host_port) {
   new_list->head = malloc(sizeof(host_list_node));
   new_list->head->host = initial_host_port;
   new_list->head->next = new_list->head;
+  pthread_mutex_init(&(new_list->head->lock), NULL);
   return new_list;
 }
 
@@ -373,9 +389,9 @@ void print_server_list() {
   printf("Servers:\n");
   current_node = server_list->head;
   do {
-    printf("\tIP: %s, port: %d, location: %d, jobs: %d\n",
+    printf("\tIP: %s, port: %d, location: %d, jobs: %d, timestamp: %d\n",
 	   current_node->host->ip, current_node->host->port,
-	   current_node->host->location, current_node->host->jobs);
+	   current_node->host->location, current_node->host->jobs, current_node->host->time_stamp);
     current_node = current_node->next;
   } while(current_node != server_list->head);
 }

@@ -5,6 +5,7 @@
 #define GREEDY
 #undef GREEDY
 #define ENABLE_HEARTBEAT
+#define SHOW_HEARTBEAT
 #define NOTIFY_OTHERS
 #define RUN_JOBS
 
