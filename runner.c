@@ -25,11 +25,12 @@ int runner() {
 #ifdef SHOW_RUNNER_STATUS
       printf("No jobs to run, sleeping\n");
 #endif
-#ifdef HEARTBEAT
+#ifdef ENABLE_HEARTBEAT
       heartbeat();
 #endif
       nanosleep(&req, NULL);
     }
+#ifdef RUN_JOBS
     printf("running %d\n", to_run->id);
     status = run_a_job(to_run);
     if(status < 0) {
@@ -39,6 +40,7 @@ int runner() {
       //Job Complete
       to_run->status = COMPLETED;
     }
+#endif
   }
 }
 

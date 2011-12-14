@@ -373,8 +373,9 @@ void print_server_list() {
   printf("Servers:\n");
   current_node = server_list->head;
   do {
-    printf("\tIP: %s, port: %d, location: %d\n",
-	   current_node->host->ip, current_node->host->port, current_node->host->location);
+    printf("\tIP: %s, port: %d, location: %d, jobs: %d\n",
+	   current_node->host->ip, current_node->host->port,
+	   current_node->host->location, current_node->host->jobs);
     current_node = current_node->next;
   } while(current_node != server_list->head);
 }
@@ -415,5 +416,3 @@ void listen_for_connection(int *listener) {
 		listen_for_connection, listener);
   handle_rpc(connection);
 }
-
-

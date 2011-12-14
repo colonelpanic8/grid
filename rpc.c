@@ -3,9 +3,11 @@ void handle_rpc(int connection) {
   char host[INET_ADDRSTRLEN];
   get_ip(connection, host);
   safe_recv(connection, &rpc, sizeof(rpc));
-  printf(BAR);
-  printf("RPC %s from %s\n", which_rpc(rpc), host);
-  printf(BAR);
+  if(rpc != HEARTBEAT) {
+    printf(BAR);
+    printf("RPC %s from %s\n", which_rpc(rpc), host);
+    printf(BAR);
+  }
   switch(rpc) {
   case SEND_SERVERS:
     rpc_send_servers(connection);

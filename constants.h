@@ -4,8 +4,9 @@
 #undef SHOW_RUNNER_STATUS
 #define GREEDY
 #undef GREEDY
-#define HEARTBEATx
+#define ENABLE_HEARTBEAT
 #define NOTIFY_OTHERS
+#define RUN_JOBS
 
 #define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
 #define problem(...)       fprintf(stderr, __VA_ARGS__)
