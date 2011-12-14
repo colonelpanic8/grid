@@ -42,8 +42,7 @@ char who[INET_ADDRSTRLEN];
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   pthread_t runner_thread;
-  host_port *my_hostport;
-  
+  host_port *my_hostport;  
   signal (SIGINT, finish);
   //setup jobs folder
   if(mkdir("./jobs", S_IRWXU)) {
@@ -388,14 +387,16 @@ void remove_from_host_list(host_port *removed_host_port, host_list *list) {
     free(removed_host_port);
     return;}
   current_node = list->head;
-  do { if (current_node->next->host == removed_host_port) { 
+  do { 
+    if (current_node->next->host == removed_host_port) { 
       node_to_remove = current_node->next;
       current_node->next = current_node->next->next; 
       free(node_to_remove);
       free(removed_host_port);
-      return; }
-    current_node = current_node -> next; }
-    while(current_node != list->head) ;
+      return;
+    }
+    current_node = current_node -> next;
+  } while(current_node != list->head);
 }
 
 host_port* find_host_in_list(char *hostname, host_list *list) {
@@ -436,9 +437,12 @@ void handle_host_failure_by_connection(int connection) { // failed on a send
 }
 
 void handle_host_failure(host_port *failed_host) { // failed on a connect
+  host_port *copy;
+  copy = malloc(sizeof(host_port));
+  host_port_copy(failed_host, copy);
   problem("%s at %d failed\n", failed_host->ip, failed_host->location);
   local_handle_failure(failed_host);
-  notify_others_of_failure(failed_host);
+  notify_others_of_failure(copy);
 }
 
 void local_handle_failure(host_port *failed_host) {
@@ -677,12 +681,5 @@ void add_to_queue(job *addJob, queue *Q) {
   
   pthread_mutex_unlock(&(Q->tail_lock));
   pthread_mutex_unlock(&(n->lock));
-
-  pthread_mutex_lock(&(my_host->lock));
-  my_host->host->jobs++;
-#ifdef VERBOSE
-  printfl("I have %d jobs", my_host->host->jobs);
-#endif
-  pthread_mutex_unlock(&(my_host->lock));
 }
 
