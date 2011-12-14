@@ -198,34 +198,6 @@ void rpc_add_job(int connection) {
   }
 }
 
-int send_meta_data(job *ajob) {
-  ajob->status = READY; //needs to be changed once we add dependencies
-  host_list_node *dest = determine_ownership(ajob);
-#ifdef GREEDY
-  add_to_queue(ajob, activeQueue);
-  pthread_mutex_lock(&(my_host->lock));
-  my_host->host->jobs++;
-#ifdef VERBOSE
-  printfl("I have %d jobs", my_host->host->jobs);
-#endif
-  pthread_mutex_unlock(&(my_host->lock));
-#else
-  if(dest == my_host) {
-    add_to_queue(ajob, activeQueue);
-    pthread_mutex_lock(&(my_host->lock));
-    my_host->host->jobs++;
-#ifdef VERBOSE
-    printfl("I have %d jobs", my_host->host->jobs);
-#endif
-    pthread_mutex_unlock(&(my_host->lock));
-  } else {
-    transfer_job(dest->host, ajob);
-    free(ajob);
-  }
-#endif
-}
-
-
 int get_job_id(job *ajob) {
   pthread_mutex_lock(&count_mutex);
   ajob->id = my_host->host->location + counter;

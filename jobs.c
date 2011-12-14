@@ -47,8 +47,72 @@ void print_job_queue(queue *Q) {
   
 }
 
-void redistribute_jobs() {
-  
+void redistribute_jobs(queue *Q) {
+#ifdef GREEDY
+#else
+  job_list_node *runner = Q->head;
+  host_list_node *dest;
+  while(runner != NULL) {
+     dest = determine_ownership(runner->entry);
+     if(dest != my_host) {
+       remove_job(runner->entry);
+       transfer_job(dest->host, runner->entry);
+       free_job_node(runner);
+     }
+     runner = runner->next;
+  }
+#endif
+}
+
+void free_queue(queue *Q) {
+  job_list_node *runner = Q->head;
+  if(runner) {
+    while(runner->next) {
+      if(runner->prev) {
+	free_job_node(runner->prev);
+      }
+      runner = runner->next;    
+    }
+    free_job_node(runner);
+  }
+  pthread_mutex_destroy(&(Q->head_lock));
+  pthread_mutex_destroy(&(Q->tail_lock));
+  free(Q);
+}
+
+void free_job_node(job_list_node *item) {
+  free(item->entry);
+  pthread_mutex_destroy(&(item->lock));
+  free(item);
+}
+
+int remove_job(job_list_node *item, queue *list) {
+  if(item == list->head){
+    pthread_mutex_lock(&(list->head_lock));
+  } else {
+    pthread_mutex_lock(&(item->prev->lock));
+  }
+  pthread_mutex_lock(&(item->lock));
+  if(item == list->tail) {
+    pthread_mutex_lock(&(item->prev->lock));
+  } else {
+    pthread_mutex_lock(&(item->next->lock));
+  }  
+  item->prev->next = item->next;
+  item->next->prev = item->prev;
+  if(item == list->head){
+    list->head = item->next;
+    pthread_mutex_unlock(&(list->head_lock));
+  } else {
+    pthread_mutex_unlock(&(item->prev->lock));
+  }
+  pthread_mutex_unlock(&(item->lock));
+  if(item == list->tail) {
+    list->tail = item->prev;
+    pthread_mutex_unlock(&(item->prev->lock));
+  } else {
+    pthread_mutex_unlock(&(item->next->lock));
+  }
 }
 
 int transfer_job(host_port *host, job *to_send) {
@@ -66,6 +130,37 @@ int transfer_job(host_port *host, job *to_send) {
     return FAILURE;
   }
   return 0;
+}
+
+int send_meta_data(job *ajob) {
+  ajob->status = READY; //needs to be changed once we add dependencies
+  host_list_node *dest = determine_ownership(ajob);
+#ifdef GREEDY
+  add_to_queue(ajob, activeQueue);
+  pthread_mutex_lock(&(my_host->lock));
+  my_host->host->jobs++;
+#ifdef VERBOSE
+  printfl("I have %d jobs", my_host->host->jobs);
+#endif
+  pthread_mutex_unlock(&(my_host->lock));
+#else
+  if(dest == my_host) {
+    add_to_queue(ajob, activeQueue);
+    
+    //
+    pthread_mutex_lock(&(my_host->lock));
+    my_host->host->jobs++;
+#ifdef VERBOSE
+    printfl("I have %d jobs", my_host->host->jobs);
+#endif
+    pthread_mutex_unlock(&(my_host->lock));
+    //
+
+  } else {
+    transfer_job(dest->host, ajob);
+    free(ajob);
+  }
+#endif
 }
 
 host_list_node *determine_ownership(job *ajob) {
@@ -226,3 +321,4 @@ void add_to_queue(job *addJob, queue *Q) {
   pthread_mutex_unlock(&(Q->tail_lock));
   pthread_mutex_unlock(&(n->lock));
 }
+

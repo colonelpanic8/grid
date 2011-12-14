@@ -121,6 +121,8 @@ void finish(int sig) {
   printf("\nFinishing\n");
   close(*listener);
   free(listener);
+  free_queue(activeQueue);
+  free_queue(backupQueue);
   free_host_list(server_list, 1);
   free_host_list(failed_hosts, 1);
   exit(0);
@@ -336,6 +338,7 @@ void free_host_list(host_list *list, int flag) {
     if(runner->host && flag) free(runner->host);
     prev = runner;
     runner = runner->next;
+    pthread_mutex_destroy(&(prev->lock));
     free(prev);
   } while(runner != list->head) ;
   free(list);

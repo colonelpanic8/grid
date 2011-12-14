@@ -3,6 +3,7 @@
 #define SHOW_RUNNER_STATUS
 #undef SHOW_RUNNER_STATUS
 #define GREEDY
+#undef GREEDY
 #define HEARTBEATx
 #define NOTIFY_OTHERS
 
@@ -98,11 +99,12 @@ typedef struct _job{
 typedef struct _job_node {
   job *entry;
   struct _job_node *next;
+  struct _job_node *prev;
   pthread_mutex_t lock;
 } job_list_node;
 
 typedef struct _queue{
-  job_list_node *head; 
+  job_list_node *head;
   job_list_node *tail;
   pthread_mutex_t head_lock;
   pthread_mutex_t tail_lock;
