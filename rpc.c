@@ -131,6 +131,7 @@ void rpc_receive_announce(int connection) {
   incoming = malloc(sizeof(host_port));
   status = safe_recv(connection, incoming, sizeof(host_port));
   add_host_to_list_by_location(incoming, server_list);
+  redistribute_active_jobs();
 }
 
 void add_host_to_list_by_location(host_port *host, host_list *list) {

@@ -47,9 +47,21 @@ void print_job_queue(queue *Q) {
   
 }
 
-void redistribute_jobs(queue *Q) {
+void redistribute_active_jobs() {
+  int num_removed = redistribute_jobs(activeQueue);
+  pthread_mutex_lock(&(my_host->lock));
+  my_host->host->jobs -= num_removed;
+#ifdef VERBOSE
+  printfl("I have %d jobs", my_host->host->jobs);
+#endif
+  pthread_mutex_unlock(&(my_host->lock));
+}
+
+int redistribute_jobs(queue *Q) {
 #ifdef GREEDY
+  return 0;
 #else
+  int count = 0;
   job_list_node *runner = Q->head;
   host_list_node *dest;
   while(runner != NULL) {
@@ -58,6 +70,7 @@ void redistribute_jobs(queue *Q) {
        remove_job(runner->entry);
        transfer_job(dest->host, runner->entry);
        free_job_node(runner);
+       count++;
      }
      runner = runner->next;
   }
@@ -195,11 +208,9 @@ int write_files(job *ajob, int num_files, data_size *files) {
     char mode[] = "0777";
     int i;
     i = strtol(mode, 0, 8);
-    if (chmod (buffer,i) < 0)
-      {
+    if (chmod (buffer,i) < 0) {
 	problem("chmod failed");
       }
-    //
   }
 }
 
@@ -284,6 +295,7 @@ void update_q_job_complete (int jobid, queue *Q) {
 
 void add_to_active_queue(job *item) {
   add_to_queue(item, activeQueue); //will need to change later for dependencies
+  pthread_mutex_lock(&(my_host->lock));
   my_host->host->jobs++;
 #ifdef VERBOSE
   printfl("I have %d jobs", my_host->host->jobs);
