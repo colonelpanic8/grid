@@ -30,7 +30,7 @@ pthread_mutex_t failure_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *failed_hosts = NULL;
 
 int num_servers, *listener;
-pthread_t *listener_thread;
+pthread_t *listener_thread = NULL;
 
 host_list_node *my_host = NULL;
 host_list_node *heartbeat_dest = NULL;
@@ -52,12 +52,13 @@ int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   pthread_t runner_thread;
   host_port *my_hostport;  
-  signal (SIGINT, finish);
+  signal(SIGINT, finish);
   //setup jobs folder
   if(mkdir("./jobs", S_IRWXU)) {
     if(errno == EEXIST) {
 #ifdef VERBOSE
-      problem("directory already exists...\n");
+      //problem("Jobs directory already exists...\n");
+      //We probably don't need to see this any more at all
 #endif
     } else {
       problem("mkdir failed with %d\n", errno);
@@ -118,29 +119,37 @@ host_list_node *integrate_host(host_port *host) {
 
 
 void finish(int sig) {
-  printf("\nFinishing\n");
+  printf("\nFinishing:\n");
+  if(listener_thread) {
 #ifdef VERBOSE
-  printf("Closing listener\n");
+    printf("Killing listener thread.\n");
+#endif
+    pthread_kill(*listener_thread, SIGINT);
+  }
+#ifdef VERBOSE
+  printf("Closing listener socket.\n");
 #endif
   close(*listener);
   free(listener);
 #ifdef VERBOSE
-  printf("Freeing Queues\n");
+  printf("Freeing queues.\n");
 #endif
   free_queue(activeQueue);
   free_queue(backupQueue);
+  if(server_list) {
 #ifdef VERBOSE
-  printf("Freeing Server List\n");
+    printf("Freeing server list.\n");
 #endif
-  free_host_list(server_list, 1);
+    free_host_list(server_list, 1);
+  }
   if(failed_hosts) {
 #ifdef VERBOSE
-    printf("Freeing Failed Hosts List\n");
+    printf("Freeing failed hosts list.\n");
 #endif
     free_host_list(failed_hosts, 1);
   }
 #ifdef VERBOSE
-  printf("Destroying Mutexes\n");
+  printf("Destroying mutexes.\n");
 #endif
   pthread_mutex_destroy(&count_mutex);
   pthread_mutex_destroy(&server_list_mutex);
@@ -415,7 +424,7 @@ int get_servers(char *hostname, int port, int add_slots, host_list **list) {
 void listener_set_up(host_port *info) {
   pthread_t thread;
   int connect_result;
-  
+  listener_thread = &thread;
   listener = malloc(sizeof(int));
   connect_result = set_up_listener(info->port, listener);
   pthread_create(&thread, NULL, (void *(*)(void *))listen_for_connection, listener);
@@ -428,6 +437,7 @@ void listen_for_connection(int *listener) {
   do {
     connect_result = wait_for_connection(*listener, &connection);
   } while(connect_result < 0);
+  listener_thread = &thread;
   pthread_create(&thread, NULL, (void *(*)(void *))
 		listen_for_connection, listener);
   handle_rpc(connection);
