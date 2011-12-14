@@ -227,19 +227,19 @@ int receive_file(int connection, data_size *file) {
 }
 
 void rpc_serve_job(int connection) {
+  int err;
   int msg = FAILURE;
   job *ajob = get_local_job();
   if(ajob) {
     msg = OKAY;
-    do_rpc(&msg); //not doing an rpc just shorthand for sending an int
-    send_job(ajob, connection);
+#ifdef VERBOSE
+    printf("Sending job %s, %d\n", ajob->name, ajob->id);
+#endif
+    safe_send(connection, &msg, sizeof(int));
+    safe_send(connection, ajob, sizeof(job));
+    return;
   }
-}
-
-void send_job(job *job_to_send,int connection) {
-  int err = OKAY;
-  err = safe_send(connection,&job_to_send,sizeof(job));
-  
+  do_rpc(&msg);
 }
 
 

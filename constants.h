@@ -3,13 +3,17 @@
 #define SHOW_RUNNER_STATUS
 #undef SHOW_RUNNER_STATUS
 #define GREEDY
-//#undef GREEDY
+#undef GREEDY
 #define ENABLE_HEARTBEAT
 #define SHOW_HEARTBEAT
-//#undef SHOW_HEARTBEAT
+#undef SHOW_HEARTBEAT
 #define NOTIFY_OTHERS
 #define RUN_JOBS
+//#undef RUN_JOBS 
+#define RUN_LOCAL
+//#undef RUN_LOCAL
 
+#define RUNNER_REST 1
 #define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
 #define problem(...)       fprintf(stderr, __VA_ARGS__)
 #define printfl(...)       printf(__VA_ARGS__); printf("\n")

@@ -18,6 +18,7 @@ void handle_rpc(int connection);
 char *which_rpc(int rpc);
 //RPCs
 void rpc_heartbeat(int connection);
+void rpc_serve_job(int connection);
 void rpc_unlock(int connection);
 void rpc_receive_announce(int connection);
 void rpc_serve_job(int connection);
@@ -34,8 +35,9 @@ void rpc_transfer_job(int connection);
 
 
 int update_job_counts(host_list *update);
-int get_remote_job(job **a_job);
+job *get_remote_job();
 job *get_local_job();
+job *get_job_for_runner();
 host_port *find_job_server();
 int redistribute_jobs(queue *Q);
 void redistribute_active_jobs();
@@ -48,6 +50,7 @@ void remove_dependency(job *current, int jobid);
 void replicate(job *rep_job);
 int receive_file(int connection, data_size *file);
 int get_job_id(job *ajob);
+int inform_of_completion(job *completed);
 int write_files(job *ajob, int num_files, data_size *files);
 void copy_job(host_port *hip, job *cop_job);
 void add_replica(host_port *host, job *rep_job);
@@ -80,9 +83,3 @@ host_list *new_host_list_by_node(host_list_node *node);
 void notify_others_of_failure(host_port *failed_host);
 void inform_of_failure(int connection, host_port *failed_host);
 void update_q_host_failed (host_port* failed_host, queue *Q);
-
-
-// job handling functions
-void send_job(job *job_to_send, int connection);
-void rpc_serve_job(int connection);
-int inform_of_completion(job *completed);

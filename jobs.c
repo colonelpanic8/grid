@@ -214,49 +214,57 @@ int write_files(job *ajob, int num_files, data_size *files) {
   }
 }
 
-int get_job_for_runner(job **ptr) {
-  if(*ptr = get_local_job()) {
-    return OKAY;
+job *get_job_for_runner(){
+  job *to_return;
+#ifdef RUN_LOCAL
+  if(to_return = get_local_job()) {
+    return to_return;
   }
-  if(get_remote_job(ptr) < 0) {
-    return FAILURE;
+#endif
+  if(to_return = get_remote_job()) {
+    return to_return;
   }
-  return OKAY;
+  return NULL;
 }
 
-int get_remote_job(job **ptr) {
+job *get_remote_job() {
   int err;
   int status;
   int connection;
   host_port *server;
-  do {
-    server = find_job_server();
-    if(!server || server == my_host->host) {
-      //find_job_server only fails when no one has any jobs
-      return FAILURE;
-    }
-    err = make_connection_with(server->ip, server->port, &connection);
-    if (err < OKAY) { 
-      handle_failure(server->ip, 1);
-      return FAILURE;
-    }
-    err = SERVE_JOB;
-    do_rpc(&err);
-    status = FAILURE;
-    err = safe_recv(connection, &status, sizeof(int));
-    if(err < 0) {
-      return err;
-    }
-    if(status < 0) {
-      //set stuff up so we can try again
-      server->jobs = 0;
-      close(connection);
-    }
-  } while(status < 0);
-  *ptr = malloc(sizeof(job));
-  err = safe_recv(connection, *ptr, sizeof(job));
+  job *location = NULL;
+  server = find_job_server();
+  if(!server || server == my_host->host) {
+    //find_job_server only fails when no one has any jobs
+    return NULL;
+  }
+  err = make_connection_with(server->ip, server->port, &connection);
+  if (err < OKAY) { 
+    handle_failure(server->ip, 1);
+    return NULL;
+  }
+  err = SERVE_JOB;
+  do_rpc(&err);
+
+  status = FAILURE;
+  err = safe_recv(connection, &status, sizeof(int)); //find out if they have a job
+  if(err < OKAY) {
+    close(connection);
+    return NULL;
+  }
+  if(status < 0) {
+    //set stuff up so we can try again because they didnt have a job
+    server->jobs = 0;
+    close(connection);
+    return NULL;
+  }
+  location = malloc(sizeof(job));
+  err = safe_recv(connection, location, sizeof(job));
+#ifdef VERBOSE2
+  printf("Received job %s, %d, from %s\n", (location)->name, (location)->id, server->ip);
+#endif
   close(connection);
-  return OKAY;
+  return location;
 }
 
 host_port *find_job_server() {

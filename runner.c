@@ -11,17 +11,18 @@
 #include "runner.h"
 
 int runner() {
-  job *to_run;
-  int status;
+  job *to_run = NULL;
+  int status, i;
   struct timespec req;
 #ifdef VERBOSE
   printf(BAR);
   printf("Runner intialized\n");
   printf(BAR);
 #endif
-  req.tv_sec = 1;
+  req.tv_sec = RUNNER_REST;
   while(1) {
-    while(get_job_for_runner(&to_run) < 0) {
+
+    while(!(to_run = get_job_for_runner())) {
 #ifdef SHOW_RUNNER_STATUS
       printf("No jobs to run, sleeping\n");
 #endif
@@ -30,7 +31,16 @@ int runner() {
 #endif
       nanosleep(&req, NULL);
     }
+#ifdef VERBOSE
+    printf(BAR);
+    printfl("Executing: %s |  Job Id: %d", to_run->name, to_run->id);
+    for(i = 0; i < to_run->argc; i++)
+      printf("%s ", to_run->argv[i]);
+    printf("\n");
+    printf(BAR);
+#endif
 #ifdef RUN_JOBS
+    
     printf("running %d\n", to_run->id);
     status = run_a_job(to_run);
     if(status < 0) {
@@ -65,15 +75,6 @@ int run_a_job(job *to_run) {
     sprintf(inpath, "./jobs/%d/", to_run->id);
     chdir(inpath);
     out = fopen("output.txt", "w");
-#ifdef VERBOSE
-    printf(BAR);
-    printfl("Executing: %s |  Job Id: %d", to_run->name, to_run->id);
-    for(i = 0; i < to_run->argc; i++)
-      printf("%s ", argv[i]);
-    printf("\n");
-    printf(BAR);
-#endif
-
     if(!out) {
       problem("output file failed to open, this is very bad std out will not be redirected!!!!!!\n");
     }
