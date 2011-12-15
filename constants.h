@@ -1,21 +1,23 @@
 //These are used to control global program behavior
-#define VERBOSE
+#define VERBOSE //Adds error messages, and general logging all over the place
 #undef VERBOSE
+#undef VERBOSE2 //Adds extremely superflous log messages
 #define SHOW_RUNNER_STATUS //Pretty annoying, probably best to leave off except for debugging
 #undef SHOW_RUNNER_STATUS 
 #define GREEDY //servers will take jobs that are added to them no matter where they should go
 #undef GREEDY
-#define ENABLE_HEARTBEAT
-#define SHOW_HEARTBEAT
+#define ENABLE_HEARTBEAT //turns heartbeat on or off
+#define SHOW_HEARTBEAT //Pretty annoying as well, shows every heartbeat message
 #undef SHOW_HEARTBEAT
-#define NOTIFY_OTHERS
+#define NOTIFY_OTHERS //of failure
 #define RUN_JOBS
 //#undef RUN_JOBS 
 #define RUN_LOCAL
 //#undef RUN_LOCAL
 #undef DEPENDENCIES
 
-#define NO_DEQUEUE
+#define NO_DEQUEUE //This prevents the runner from ever dequeing jobs, so that we can see what happens when nodes maintain large queues
+#undef NO_DEQUEUE
 
 #define RUNNER_REST 1 //How long the runner waits between heartbeats
 #define DISPLAY 5 //How many heartbeats to wait to display info
