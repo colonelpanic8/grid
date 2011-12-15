@@ -1,8 +1,8 @@
-//These are used to control program behavior
-#define VERBOSE
-#define SHOW_RUNNER_STATUS
-#undef SHOW_RUNNER_STATUS
-#define GREEDY
+//These are used to control global program behavior
+#define VERBOSE //
+#define SHOW_RUNNER_STATUS //Pretty annoying, probably best to leave off except for debugging
+#undef SHOW_RUNNER_STATUS 
+#define GREEDY //servers will take jobs that are added to them no matter where they should go
 #undef GREEDY
 #define ENABLE_HEARTBEAT
 #define SHOW_HEARTBEAT
@@ -91,6 +91,7 @@ typedef struct _host_port {
 typedef struct _host_list_node {
   host_port *host;
   struct _host_list_node *next;
+  struct _host_list_node *prev;
   pthread_mutex_t lock;
 } host_list_node;
 

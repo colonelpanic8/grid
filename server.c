@@ -380,6 +380,7 @@ host_list *new_host_list(host_port *initial_host_port) {
   new_list->head = malloc(sizeof(host_list_node));
   new_list->head->host = initial_host_port;
   new_list->head->next = new_list->head;
+  new_list->head->prev = new_list->head;
   pthread_mutex_init(&(new_list->head->lock), NULL);
   return new_list;
 }
@@ -387,9 +388,12 @@ host_list *new_host_list(host_port *initial_host_port) {
 host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *where_to_add) {
   host_list_node *new_node;
   new_node = (host_list_node *)malloc(sizeof(host_list_node));
-  pthread_mutex_init(&(new_node->lock), NULL);
-  new_node->next = where_to_add->next;
   new_node->host = added_host_port;
+  pthread_mutex_init(&(new_node->lock), NULL);
+
+  new_node->next = where_to_add->next;
+  new_node->prev = where_to_add->next;
+  where_to_add->next->prev = new_node;
   where_to_add->next = new_node;
   return new_node;
 }
