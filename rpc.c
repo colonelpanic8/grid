@@ -150,16 +150,7 @@ void rpc_receive_announce(int connection) {
   }
   if(my_host->next->host == incoming) {
     replicate_my_jobs();
-  }
-  
-}
-
-void add_host_to_list_by_location(host_port *host, host_list *list) {
-  host_list_node *runner = list->head;
-  while(runner->next->host->location < host->location && runner->next->host->location != 0) {
-    runner = runner->next;
-  }
-  add_to_host_list(host, runner);
+  }  
 }
 
 void rpc_request_add_lock(int connection) {
@@ -219,7 +210,6 @@ void rpc_add_job(int connection) {
       receive_file(connection, &files[i]);
     }
   }
-
   i = get_job_id(new);
   write_files(new, num_files, files);
   send_meta_data(new);
@@ -231,25 +221,6 @@ void rpc_add_job(int connection) {
     }
     free(files);
   }
-}
-
-int get_job_id(job *ajob) {
-  pthread_mutex_lock(&count_mutex);
-  ajob->id = my_host->host->location + counter;
-  counter++;
-  pthread_mutex_unlock(&count_mutex);
-  return ajob->id;
-}
-
-int receive_file(int connection, data_size *file) {
-  int err;
-  err = safe_recv(connection, &(file->size), sizeof(size_t));
-  if(err < 0) problem("Recv failed size\n");
-  file->data = malloc(file->size);
-  err = safe_recv(connection, file->data, file->size);
-  if(err < 0) problem("Recv failed data\n");
-  err = safe_recv(connection, file->name, MAX_ARGUMENT_LEN*sizeof(char));
-  if(err < 0) problem("Recv failed name\n");
 }
 
 void rpc_serve_job(int connection) {
@@ -268,7 +239,6 @@ void rpc_serve_job(int connection) {
   do_rpc(&msg);
 }
 
-
 void rpc_inform_of_completion(int connection) {
   int err = OKAY;
   int jobid;
@@ -276,7 +246,6 @@ void rpc_inform_of_completion(int connection) {
   if (err < OKAY) return;
 
 }
-
 
 void rpc_inform_of_failure(int connection) {
   int err = OKAY;
@@ -291,28 +260,3 @@ void rpc_inform_of_failure(int connection) {
   
   handle_failure(received_hp->ip, 0);
 }
-
-// If a job is complete then we need to update the queue to make jobs that depended on that job available.
-
-int contains(job *current, int jobid) {
-  int i = 0;
-  while (i < current->argc) {
-    if (jobid == current->dependent_on[i]) return 1;
-    i++;
-  }
-  return 0;
-}
-
-
-void remove_dependency(job *current, int jobid) {
-  int i = 0;
-  while (i < current->argc) {
-    if (jobid == current->dependent_on[i]) {
-      current->dependent_on[i] = 0;
-      break;
-    }
-    i++;
-  }
-}
-
-
