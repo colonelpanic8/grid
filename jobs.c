@@ -177,6 +177,23 @@ int transfer_job(host_port *host, job *to_send) {
   return 0;
 }
 
+int replicate_job(job *to_send) {
+  int connection, err;
+  err = make_connection_with(my_host->next->host->ip, my_host->next->host->port, &connection);
+  if (err < OKAY) {
+    handle_failure(my_host->next->host->ip, 1);
+    return FAILURE;
+  }
+  err = RECEIVE_JOB_COPY;
+  do_rpc(&err);
+  err = safe_send(connection, to_send, sizeof(job));
+  if (err < OKAY) {
+    problem("Replicate Job failed\n");
+    return FAILURE;
+  }
+  return 0;
+}
+
 int send_meta_data(job *ajob) {
   ajob->status = READY; //needs to be changed once we add dependencies
   host_list_node *dest = determine_ownership(ajob);
@@ -367,14 +384,3 @@ int inform_of_completion(job *completed) {
   return OKAY;
 }
 
-void update_q_job_complete (int jobid, queue *Q) {
-   job_list_node *current;
-   current = Q->head;
-   while(current != NULL) {
-       if (contains(current->entry, jobid)) {
-	 remove_dependency(current->entry, jobid);
-         //check_avail(current->entry);
-       }
-       current = current->next;
-   } 
-}

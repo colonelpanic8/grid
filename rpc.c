@@ -124,6 +124,7 @@ void rpc_transfer_job(int connection) {
     problem("Job transfer failed.\n");
   } else {
     add_to_queue(incoming, my_queue);
+    replicate_job(incoming);
   }
 }
 
@@ -279,7 +280,6 @@ void rpc_inform_of_completion(int connection) {
   err = safe_recv(connection,&jobid,sizeof(int));  
   if (err < OKAY) return;
 
-  update_q_job_complete(jobid,backup_queue);
 }
 
 

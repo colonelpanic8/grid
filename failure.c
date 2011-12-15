@@ -22,12 +22,10 @@ void handle_failure(char *ip, int flag) {
 
 void local_handle_failure(host_list_node *failed_host) {
   int flag = 0;
-  pthread_mutex_lock(&server_list_mutex);
   if(failed_host == my_host->next) {
     flag = 1;
   }
   remove_from_host_list(failed_host, server_list);
-  pthread_mutex_unlock(&server_list_mutex);
   if(flag) {
     update_q_host_failed();
   }
@@ -65,7 +63,7 @@ int remove_from_host_list(host_list_node *to_remove, host_list *list) {
     add_node_to_host_list(to_remove, failed_hosts->head);
   } else {
     failed_hosts = new_host_list_by_node(to_remove);
-  }
+  } 
 }
 
 host_list_node *add_node_to_host_list(host_list_node *node, host_list_node *where_to_add) {
@@ -120,4 +118,5 @@ void inform_of_failure(int connection, host_port *failed_host) {
     return; 
   }
 }
+
 

@@ -44,7 +44,6 @@ int redistribute_jobs(queue *Q);
 void print_job_queue(queue *Q);
 int transfer_job(host_port *host, job *to_send);
 int announce(int connection, host_port *host);
-void update_q_job_complete (int jobid, queue *Q);
 int contains(job *current, int jobid);
 void remove_dependency(job *current, int jobid);
 void replicate(job *rep_job);
