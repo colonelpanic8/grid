@@ -59,6 +59,7 @@ void handle_rpc(int connection) {
 #else
   if(rpc != HEARTBEAT) { 
     print_server_list();
+    print_job_queue(my_queue);
   }
 #endif
 }
