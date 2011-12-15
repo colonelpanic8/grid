@@ -24,6 +24,9 @@ void handle_rpc(int connection) {
   case JOB_COMPLETE:
     rpc_inform_of_completion(connection);
     break;
+  case RECEIVE_JOB_COPY:
+    rpc_receive_job_copy(connection);
+    break;
   case RECEIVE_UPDATE:
     rpc_receive_update(connection);
     break;
@@ -71,6 +74,9 @@ char *which_rpc(int rpc) {
   case JOB_COMPLETE:
     return JOB_COMPLETE_S;
     break;
+  case RECEIVE_JOB_COPY:
+    return RECEIVE_JOB_COPY_S;
+    break;
   case RECEIVE_UPDATE:
     return RECEIVE_UPDATE_S;
     break;
@@ -117,6 +123,18 @@ void rpc_transfer_job(int connection) {
     problem("Job transfer failed.\n");
   } else {
     add_to_queue(incoming, my_queue);
+  }
+}
+
+void rpc_receive_job_copy(int connection) {
+  int err;
+  job *incoming;
+  incoming = malloc(sizeof(job));
+  err = safe_recv(connection, incoming, sizeof(job));
+  if(err < 0) {
+    problem("Job transfer failed.\n");
+  } else {
+    add_to_queue(incoming, backup_queue);
   }
 }
 
