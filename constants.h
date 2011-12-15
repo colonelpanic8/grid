@@ -12,20 +12,20 @@
 //#undef RUN_JOBS 
 #define RUN_LOCAL
 //#undef RUN_LOCAL
+#undef DEPENDENCIES
 
-#define RUNNER_REST 1
+#define RUNNER_REST 1 //How long the runner waits between heartbeats
+
+//
 #define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
 #define problem(...)       fprintf(stderr, __VA_ARGS__)
 #define printfl(...)       printf(__VA_ARGS__); printf("\n")
 
 #define BAR "------------------------------------------------------------\n"
-#define RPC_STR_LEN 1
-#define MAXIMUM_NODES 100
 #define NUM_REPLICAS 2
 #define BUFFER_SIZE 256
 #define MAX_ARGUMENTS 10
 #define MAX_ARGUMENT_LEN 40
-#define MAX_JOBS 5 //per submission
 
 #define TRANSMISSION_ERROR (-5)
 #define RECEIVER_ERROR (-6)
@@ -111,8 +111,10 @@ typedef struct _job_node {
 } job_list_node;
 
 typedef struct _queue{
+  int active_jobs;
   job_list_node *head;
   job_list_node *tail;
+  pthread_mutex_t active_jobs_lock;
   pthread_mutex_t head_lock;
   pthread_mutex_t tail_lock;
 } queue;

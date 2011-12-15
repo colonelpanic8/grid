@@ -114,6 +114,13 @@ void lowercase(char *str) {
      }
 }
 
+int main(int argc, char **argv) {
+  if(argc > 2) {
+    simple_add(argv[1], atoi(argv[2]));
+  }
+}
+
+#ifdef DEPENDENCIES
 int parse_dependencies(char *str, char job_names[MAX_JOBS][MAX_ARGUMENT_LEN], job *j) {
   char temp[BUFFER_SIZE];
   char *point;
@@ -125,15 +132,6 @@ int parse_dependencies(char *str, char job_names[MAX_JOBS][MAX_ARGUMENT_LEN], jo
   }
   return 0;
 }
-
-
-
-int main(int argc, char **argv) {
-  if(argc > 2) {
-    simple_add(argv[1], atoi(argv[2]));
-  }
-}
-
 void add_job_std_in(char *host, int port) {
   int num_args, num_jobs, connection, i, flags[MAX_ARGUMENTS];
   job *jobs;
@@ -165,3 +163,4 @@ void add_job_std_in(char *host, int port) {
   }
   
 }
+#endif

@@ -1,14 +1,17 @@
 void queue_setup() {
   activeQueue = (queue *)malloc(sizeof(queue));
   backupQueue = (queue *)malloc(sizeof(queue));
-  activeQueue->head = NULL;
-  backupQueue->head = NULL;
-  activeQueue->tail = NULL;
-  backupQueue->tail = NULL;
-  pthread_mutex_init(&(activeQueue->head_lock), NULL); 
-  pthread_mutex_init(&(activeQueue->tail_lock), NULL); 
-  pthread_mutex_init(&(backupQueue->head_lock), NULL); 
-  pthread_mutex_init(&(backupQueue->tail_lock), NULL); 
+  init_queue(activeQueue);
+  init_queue(backupQueue);
+}
+
+void init_queue(queue *Q) {
+  Q->head = NULL;
+  Q->tail = NULL;
+  Q->active_jobs = 0;
+  pthread_mutex_init(&(Q->active_jobs_lock), NULL);
+  pthread_mutex_init(&(Q->head_lock), NULL); 
+  pthread_mutex_init(&(Q->tail_lock), NULL);
 }
 
 job *get_local_job() { //dequeue local job
@@ -18,63 +21,62 @@ job *get_local_job() { //dequeue local job
     current_node = current_node->next;
   }
   if(current_node && current_node->entry) {
-#ifdef SHOW_RUNNER_STATUS
-	printfl("current_node was NULL OR entry was null");
-#endif
     pthread_mutex_lock(&(current_node->lock));
     if(current_node->entry->status == READY) {
-      pthread_mutex_lock(&(my_host->lock));
-      my_host->host->jobs--;
-#ifdef VERBOSE
-      printfl("I have %d jobs", my_host->host->jobs);
-#endif
-      pthread_mutex_unlock(&(my_host->lock));
       current_node->entry->status = RUNNING;
+      pthread_mutex_unlock(&(current_node->lock));
+      update_job_count(activeQueue, -1);
       return current_node->entry;
     }
-#ifdef SHOW_RUNNER_STATUS
-    else {
-      printfl("Status was not ready");
-    }
-#endif
     pthread_mutex_unlock(&(current_node->lock));
   }
-  
   return NULL;
 }
 
 void print_job_queue(queue *Q) {
-  
-}
-
-void redistribute_active_jobs() {
-  int num_removed = redistribute_jobs(activeQueue);
-  pthread_mutex_lock(&(my_host->lock));
-  my_host->host->jobs -= num_removed;
-#ifdef VERBOSE
-  printfl("I have %d jobs", my_host->host->jobs);
-#endif
-  pthread_mutex_unlock(&(my_host->lock));
+  job_list_node *runner;
+  runner = Q->head;
+  printf(BAR);
+  printf("Jobs:\n");
+  while(runner) {
+    printf("\tName: %s, ID:%d ", runner->entry->name, runner->entry->id);
+    if(runner == Q->head) {
+      printf("(Head)");
+    }
+    if(runner == Q->tail) {
+      printf("(Tail)");
+    }
+    printf("\n");
+    runner = runner->next;
+  }
+  printf(BAR);
 }
 
 int redistribute_jobs(queue *Q) {
 #ifdef GREEDY
   return 0;
-#else
+#endif
   int count = 0;
-  job_list_node *runner = Q->head;
+  job_list_node *prev, *runner = Q->head;
   host_list_node *dest;
   while(runner != NULL) {
-     dest = determine_ownership(runner->entry);
-     if(dest != my_host) {
-       remove_job(runner->entry);
-       transfer_job(dest->host, runner->entry);
-       free_job_node(runner);
-       count++;
-     }
-     runner = runner->next;
+    print_job_queue(Q);
+    prev = runner;
+    runner = runner->next;
+    dest = determine_ownership(prev->entry);
+    if(dest != my_host) {
+      remove_job(prev, activeQueue);
+      transfer_job(dest->host, prev->entry);
+
+      printf("Goodbye\n");
+      if(prev->entry->status == READY) {
+	count++;
+	update_job_count(Q, -1);
+      } 
+      free_job_node(prev);
+    }
   }
-#endif
+  return count;
 }
 
 void free_queue(queue *Q) {
@@ -88,6 +90,7 @@ void free_queue(queue *Q) {
     }
     free_job_node(runner);
   }
+  pthread_mutex_destroy(&(Q->active_jobs_lock));
   pthread_mutex_destroy(&(Q->head_lock));
   pthread_mutex_destroy(&(Q->tail_lock));
   free(Q);
@@ -110,9 +113,13 @@ int remove_job(job_list_node *item, queue *list) {
     pthread_mutex_lock(&(item->prev->lock));
   } else {
     pthread_mutex_lock(&(item->next->lock));
-  }  
-  item->prev->next = item->next;
-  item->next->prev = item->prev;
+  }
+  if(item->prev) {
+    item->prev->next = item->next;
+  }
+  if(item->next) {
+    item->next->prev = item->prev;
+  }
   if(item == list->head){
     list->head = item->next;
     pthread_mutex_unlock(&(list->head_lock));
@@ -152,7 +159,7 @@ int send_meta_data(job *ajob) {
   add_to_active_queue(ajob);
 #else
   if(dest == my_host) {
-    add_to_active_queue(ajob);
+    add_to_queue(ajob, activeQueue);
   } else {
     transfer_job(dest->host, ajob);
     free(ajob);
@@ -267,7 +274,7 @@ job *get_remote_job() {
   return location;
 }
 
-host_port *find_job_server() {
+host_port *find_job_server() { //Finds the host who we believe to have the most jobs
   host_list_node *n;
   host_port *p;
   n = server_list->head;
@@ -285,6 +292,49 @@ host_port *find_job_server() {
   }
 }
 
+void update_job_count(queue *Q, int update) {
+  pthread_mutex_lock(&(Q->active_jobs_lock));
+  Q->active_jobs = Q->active_jobs + update;
+#ifdef VERBOSE
+  printfl("I have %d jobs", Q->active_jobs);
+#endif
+  pthread_mutex_unlock(&(Q->active_jobs_lock));
+}
+
+void add_to_queue(job *addJob, queue *Q) {
+  job_list_node *n, *prev;
+
+  n = (job_list_node *)malloc(sizeof(job_list_node));
+  pthread_mutex_init(&(n->lock), NULL);
+  
+  pthread_mutex_lock(&(n->lock));
+  pthread_mutex_lock(&(Q->tail_lock));
+  n->next = NULL;
+  n->entry = addJob;
+  if(Q->tail) {
+    n->prev = Q->tail;
+    Q->tail->next = n;
+    Q->tail = n;
+  } else {
+    n->prev = NULL;
+    Q->tail = n;
+    Q->head = n;
+  }
+  pthread_mutex_unlock(&(Q->tail_lock));
+  pthread_mutex_unlock(&(n->lock));
+  update_job_count(Q, 1);
+}
+
+
+
+
+//Not currently in use
+
+
+
+
+
+
 int inform_of_completion(job *completed) {
   return OKAY;
 }
@@ -300,38 +350,3 @@ void update_q_job_complete (int jobid, queue *Q) {
        current = current->next;
    } 
 }
-
-void add_to_active_queue(job *item) {
-  add_to_queue(item, activeQueue); //will need to change later for dependencies
-  pthread_mutex_lock(&(my_host->lock));
-  my_host->host->jobs++;
-#ifdef VERBOSE
-  printfl("I have %d jobs", my_host->host->jobs);
-#endif
-  pthread_mutex_unlock(&(my_host->lock));
-}
-
-void add_to_queue(job *addJob, queue *Q) {
-  job_list_node *n, *prev;
-
-  n = (job_list_node *)malloc(sizeof(job_list_node));
-  pthread_mutex_init(&(n->lock), NULL);
-
-  pthread_mutex_lock(&(n->lock));
-  pthread_mutex_lock(&(Q->tail_lock));
-  
-  
-  n->next = NULL;
-  n->entry = addJob;
-  if(Q->tail) {
-    Q->tail->next = n;
-    Q->tail = n;
-  } else {
-    Q->tail = n;
-    Q->head = n;
-  }
-  
-  pthread_mutex_unlock(&(Q->tail_lock));
-  pthread_mutex_unlock(&(n->lock));
-}
-

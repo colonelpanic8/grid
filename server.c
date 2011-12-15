@@ -171,6 +171,7 @@ int heartbeat() {
     receive_host_list(connection, &incoming);
     pthread_mutex_lock(&(my_host->lock));
     my_host->host->time_stamp++;
+    my_host->host->jobs = activeQueue->active_jobs;
     pthread_mutex_unlock(&(my_host->lock));
     safe_send(connection, my_host->host, sizeof(host_port));
     update_job_counts(incoming);

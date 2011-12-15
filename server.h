@@ -34,13 +34,13 @@ void rpc_request_add_lock(int connection);
 void rpc_transfer_job(int connection);
 
 
+void init_queue(queue *Q);
 int update_job_counts(host_list *update);
 job *get_remote_job();
 job *get_local_job();
 job *get_job_for_runner();
 host_port *find_job_server();
 int redistribute_jobs(queue *Q);
-void redistribute_active_jobs();
 void print_job_queue(queue *Q);
 int transfer_job(host_port *host, job *to_send);
 int announce(int connection, host_port *host);
@@ -54,15 +54,15 @@ int inform_of_completion(job *completed);
 int write_files(job *ajob, int num_files, data_size *files);
 void copy_job(host_port *hip, job *cop_job);
 void add_replica(host_port *host, job *rep_job);
-void add_to_active_queue(job *item);
+host_list_node *determine_ownership(job *ajob);
 void add_to_queue(job *addJob, queue *Q);
 void queue_setup();
 void free_job_node(job_list_node *item);
 void free_queue(queue *Q);
+void update_job_count(queue *Q, int update);
 
 
 // linked list and host-port handling
-host_list_node *determine_ownership(job *ajob);
 void add_host_to_list_by_location(host_port *host, host_list *list);
 host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *where_to_add);
 host_list *new_host_list(host_port *initial_host_port);
