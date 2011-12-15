@@ -14,6 +14,8 @@
 //#undef RUN_LOCAL
 #undef DEPENDENCIES
 
+#define NO_DEQUEUE
+
 #define RUNNER_REST 1 //How long the runner waits between heartbeats
 
 //

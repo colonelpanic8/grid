@@ -146,8 +146,16 @@ void rpc_receive_announce(int connection) {
   status = safe_recv(connection, incoming, sizeof(host_port));
   add_host_to_list_by_location(incoming, server_list);
   if(my_host->prev->host == incoming) { //We only need to redistribute when the host added is our prev
+#ifdef VERBOSE
+    printf("Redistributing some jobs to the new node\n");
+#endif
     redistribute_jobs(my_queue);
   }
+#ifdef VERBOSE
+  else
+    printf("Redistributing some jobs to the new node\n");
+#endif
+  
 }
 
 void add_host_to_list_by_location(host_port *host, host_list *list) {

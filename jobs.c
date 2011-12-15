@@ -39,7 +39,8 @@ void print_job_queue(queue *Q) {
   printf(BAR);
   printf("Jobs:\n");
   while(runner) {
-    printf("\tName: %s, ID:%d ", runner->entry->name, runner->entry->id);
+    printf("\tName: %s, ID: %d, Hash: %d", runner->entry->name, runner->entry->id,
+	   hash(runner->entry->name, runner->entry->id));
     if(runner == Q->head) {
       printf("(Head)");
     }
@@ -60,7 +61,7 @@ int redistribute_jobs(queue *Q) {
   job_list_node *prev, *runner = Q->head;
   host_list_node *dest;
   while(runner != NULL) {
-#ifdef VERBOSE
+#ifdef VERBOSE2
     print_job_queue(Q);
 #endif
     prev = runner;
@@ -70,7 +71,6 @@ int redistribute_jobs(queue *Q) {
       remove_job(prev, my_queue);
       transfer_job(dest->host, prev->entry);
 
-      printf("Goodbye\n");
       if(prev->entry->status == READY) {
 	count++;
 	update_job_count(Q, -1);
@@ -201,9 +201,9 @@ host_list_node *determine_ownership(job *ajob) {
   printf("%s, %d hashes to %d\n", ajob->name, ajob->id, job_hash);
 #endif
   runner = server_list->head;
-  while(runner->next->host->location <= job_hash && runner->next->host->location != 0) {
+  do {
     runner = runner->next;
-  }
+  } while(runner->host->location <= job_hash && runner->host->location != 0);
 #ifdef VERBOSE
   printf("So it belongs to %s\n", runner->host->ip);
 #endif
@@ -247,6 +247,9 @@ int write_files(job *ajob, int num_files, data_size *files) {
 }
 
 job *get_job_for_runner(){
+#ifdef NO_DEQUEUE
+  return NULL;
+#endif
   job *to_return;
 #ifdef RUN_LOCAL
   if(to_return = get_local_job()) {
