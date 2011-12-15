@@ -11,6 +11,7 @@ host_list_node *integrate_host(host_port *host);
 int relinquish_add_lock(host_list *list);
 int tell_to_unlock(int connection);
 int heartbeat();
+int print_method();
 
 
 //RPC handles
@@ -81,3 +82,5 @@ host_list *new_host_list_by_node(host_list_node *node);
 void notify_others_of_failure(host_port *failed_host);
 void inform_of_failure(int connection, host_port *failed_host);
 void update_q_host_failed ();
+
+void print_my_job_queue();

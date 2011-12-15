@@ -94,9 +94,20 @@ int main(int argc, char **argv) {
     relinquish_add_lock(server_list);
   }
   heartbeat_dest = my_host->next;
-
+  
+  pthread_create(&runner_thread, NULL, (void *(*)(void *))print_method, NULL);
   pthread_create(&runner_thread, NULL, (void *(*)(void *))runner, NULL);
   pthread_join(runner_thread, NULL);
+}
+
+int print_method() {
+  char buffer[BUFFER_SIZE];
+  while(1) {
+    fgets(buffer, BUFFER_SIZE-1, stdin);
+    print_server_list();
+    print_my_job_queue();
+    print_job_queue(backup_queue);
+  }
 }
 
 host_list_node *integrate_host(host_port *host) {

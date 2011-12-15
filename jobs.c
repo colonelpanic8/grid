@@ -99,7 +99,6 @@ void update_q_host_failed () {
       if(prev->entry->status == READY) {
 	update_job_count(my_queue, 1);
       } 
-      free_job_node(prev);
     }
   }
 }
@@ -128,16 +127,16 @@ void free_job_node(job_list_node *item) {
 }
 
 int remove_job(job_list_node *item, queue *list) {
-  if(item == list->head){
-    pthread_mutex_lock(&(list->head_lock));
-  } else {
+  if(item->prev) {
     pthread_mutex_lock(&(item->prev->lock));
+  } else {
+    pthread_mutex_lock(&(list->head_lock));
   }
   pthread_mutex_lock(&(item->lock));
-  if(item == list->tail) {
-    pthread_mutex_lock(&(item->prev->lock));
-  } else {
+  if(item->next) {
     pthread_mutex_lock(&(item->next->lock));
+  } else {
+    pthread_mutex_lock(&(list->tail_lock));
   }
   if(item->prev) {
     item->prev->next = item->next;
@@ -145,18 +144,16 @@ int remove_job(job_list_node *item, queue *list) {
   if(item->next) {
     item->next->prev = item->prev;
   }
-  if(item == list->head){
-    list->head = item->next;
-    pthread_mutex_unlock(&(list->head_lock));
-  } else {
+  if(item->prev) {
     pthread_mutex_unlock(&(item->prev->lock));
+  } else {
+    pthread_mutex_unlock(&(list->head_lock));
   }
   pthread_mutex_unlock(&(item->lock));
-  if(item == list->tail) {
-    list->tail = item->prev;
-    pthread_mutex_unlock(&(item->prev->lock));
-  } else {
+  if(item->next) {
     pthread_mutex_unlock(&(item->next->lock));
+  } else {
+    pthread_mutex_unlock(&(list->tail_lock));
   }
 }
 
@@ -174,6 +171,7 @@ int transfer_job(host_port *host, job *to_send) {
     problem("Transfer Job failed\n");
     return FAILURE;
   }
+  close(connection);
   return 0;
 }
 
@@ -202,6 +200,7 @@ int send_meta_data(job *ajob) {
 #else
   if(dest == my_host) {
     add_to_queue(ajob, my_queue);
+    replicate_job(ajob);
   } else {
     transfer_job(dest->host, ajob);
     free(ajob);
@@ -384,3 +383,6 @@ int inform_of_completion(job *completed) {
   return OKAY;
 }
 
+void print_my_job_queue() {
+  print_job_queue(my_queue);
+}

@@ -1,5 +1,6 @@
 //These are used to control global program behavior
-#define VERBOSE //
+#define VERBOSE
+#undef VERBOSE
 #define SHOW_RUNNER_STATUS //Pretty annoying, probably best to leave off except for debugging
 #undef SHOW_RUNNER_STATUS 
 #define GREEDY //servers will take jobs that are added to them no matter where they should go
@@ -17,13 +18,14 @@
 #define NO_DEQUEUE
 
 #define RUNNER_REST 1 //How long the runner waits between heartbeats
+#define DISPLAY 5 //How many heartbeats to wait to display info
 
 //
 #define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
 #define problem(...)       fprintf(stderr, __VA_ARGS__)
 #define printfl(...)       printf(__VA_ARGS__); printf("\n")
 
-#define BAR "------------------------------------------------------------\n"
+#define BAR "--------------------------------------------------------------------------------\n"
 #define NUM_REPLICAS 2
 #define BUFFER_SIZE 256
 #define MAX_ARGUMENTS 10

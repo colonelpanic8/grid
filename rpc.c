@@ -56,11 +56,7 @@ void handle_rpc(int connection) {
   close(connection);
 #ifdef SHOW_HEARTBEAT
   print_server_list();
-#else
-  if(rpc != HEARTBEAT) { 
-    print_server_list();
-    print_job_queue(my_queue);
-  }
+  print_job_queue(my_queue);
 #endif
 }
 
