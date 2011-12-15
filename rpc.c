@@ -101,7 +101,7 @@ char *which_rpc(int rpc) {
 void rpc_heartbeat(int connection) {
   host_list *incoming;
   host_port *host;
-  my_host->host->jobs = activeQueue->active_jobs;
+  my_host->host->jobs = my_queue->active_jobs;
   host = malloc(sizeof(host_port));
   send_host_list(connection, server_list);
   safe_recv(connection, host, sizeof(host_port));
@@ -116,7 +116,7 @@ void rpc_transfer_job(int connection) {
   if(err < 0) {
     problem("Job transfer failed.\n");
   } else {
-    add_to_queue(incoming, activeQueue);
+    add_to_queue(incoming, my_queue);
   }
 }
 
@@ -126,7 +126,9 @@ void rpc_receive_announce(int connection) {
   incoming = malloc(sizeof(host_port));
   status = safe_recv(connection, incoming, sizeof(host_port));
   add_host_to_list_by_location(incoming, server_list);
-  redistribute_jobs(activeQueue);
+  if(my_host->prev->host == incoming) { //We only need to redistribute when the host added is our prev
+    redistribute_jobs(my_queue);
+  }
 }
 
 void add_host_to_list_by_location(host_port *host, host_list *list) {
@@ -250,7 +252,7 @@ void rpc_inform_of_completion(int connection) {
   err = safe_recv(connection,&jobid,sizeof(int));  
   if (err < OKAY) return;
 
-  update_q_job_complete(jobid,backupQueue);
+  update_q_job_complete(jobid,backup_queue);
 }
 
 

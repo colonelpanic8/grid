@@ -35,8 +35,8 @@ pthread_t *listener_thread = NULL;
 host_list_node *my_host = NULL;
 host_list_node *heartbeat_dest = NULL;
 
-queue *activeQueue;
-queue *backupQueue;
+queue *my_queue;
+queue *backup_queue;
 
 pthread_mutex_t d_add_mutex = PTHREAD_MUTEX_INITIALIZER;
 int d_add_lock = UNLOCKED;
@@ -134,8 +134,8 @@ void finish(int sig) {
 #ifdef VERBOSE
   printf("Freeing queues.\n");
 #endif
-  free_queue(activeQueue);
-  free_queue(backupQueue);
+  free_queue(my_queue);
+  free_queue(backup_queue);
   if(server_list) {
 #ifdef VERBOSE
     printf("Freeing server list.\n");
@@ -171,7 +171,7 @@ int heartbeat() {
     receive_host_list(connection, &incoming);
     pthread_mutex_lock(&(my_host->lock));
     my_host->host->time_stamp++;
-    my_host->host->jobs = activeQueue->active_jobs;
+    my_host->host->jobs = my_queue->active_jobs;
     pthread_mutex_unlock(&(my_host->lock));
     safe_send(connection, my_host->host, sizeof(host_port));
     update_job_counts(incoming);

@@ -1,8 +1,8 @@
 void queue_setup() {
-  activeQueue = (queue *)malloc(sizeof(queue));
-  backupQueue = (queue *)malloc(sizeof(queue));
-  init_queue(activeQueue);
-  init_queue(backupQueue);
+  my_queue = (queue *)malloc(sizeof(queue));
+  backup_queue = (queue *)malloc(sizeof(queue));
+  init_queue(my_queue);
+  init_queue(backup_queue);
 }
 
 void init_queue(queue *Q) {
@@ -16,7 +16,7 @@ void init_queue(queue *Q) {
 
 job *get_local_job() { //dequeue local job
   job_list_node *current_node;
-  current_node = activeQueue->head;
+  current_node = my_queue->head;
   while (current_node && current_node->entry && current_node->entry->status != READY) {
     current_node = current_node->next;
   }
@@ -25,7 +25,7 @@ job *get_local_job() { //dequeue local job
     if(current_node->entry->status == READY) {
       current_node->entry->status = RUNNING;
       pthread_mutex_unlock(&(current_node->lock));
-      update_job_count(activeQueue, -1);
+      update_job_count(my_queue, -1);
       return current_node->entry;
     }
     pthread_mutex_unlock(&(current_node->lock));
@@ -60,12 +60,14 @@ int redistribute_jobs(queue *Q) {
   job_list_node *prev, *runner = Q->head;
   host_list_node *dest;
   while(runner != NULL) {
+#ifdef VERBOSE
     print_job_queue(Q);
+#endif
     prev = runner;
     runner = runner->next;
     dest = determine_ownership(prev->entry);
     if(dest != my_host) {
-      remove_job(prev, activeQueue);
+      remove_job(prev, my_queue);
       transfer_job(dest->host, prev->entry);
 
       printf("Goodbye\n");
@@ -77,6 +79,29 @@ int redistribute_jobs(queue *Q) {
     }
   }
   return count;
+}
+
+void update_q_host_failed () {
+  //Thought: no thread safety because we will only ever do this one at a time
+  //Is this worth implementing differently?
+  job_list_node *prev, *runner = backup_queue->head;
+  host_list_node *dest;
+  while(runner != NULL) {
+#ifdef VERBOSE
+    print_job_queue(backup_queue);
+#endif
+    prev = runner;
+    runner = runner->next;
+    dest = determine_ownership(prev->entry);
+    if(dest == my_host) {
+      remove_job(prev, backup_queue);
+      add_to_queue(prev->entry, my_queue);
+      if(prev->entry->status == READY) {
+	update_job_count(my_queue, 1);
+      } 
+      free_job_node(prev);
+    }
+  }
 }
 
 void free_queue(queue *Q) {
@@ -159,7 +184,7 @@ int send_meta_data(job *ajob) {
   add_to_active_queue(ajob);
 #else
   if(dest == my_host) {
-    add_to_queue(ajob, activeQueue);
+    add_to_queue(ajob, my_queue);
   } else {
     transfer_job(dest->host, ajob);
     free(ajob);

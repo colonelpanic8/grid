@@ -1,45 +1,53 @@
 void handle_failure(char *ip, int flag) {
-  host_list_node *failed_host_node_prev;
+  host_list_node *failed_host_node;
   host_port *failed_host;
   pthread_mutex_lock(&failure_mutex);
   
-  if(failed_host_node_prev = find_prev_host_in_list(ip, server_list)) {
+  if(failed_host_node = find_host_in_list(ip, server_list)) {
 #ifdef VERBOSE
     printf("Host failure %s\n", ip);
 #endif
-    failed_host = failed_host_node_prev->next->host;
-    local_handle_failure(failed_host_node_prev);
+    failed_host = failed_host_node->host;
+    local_handle_failure(failed_host_node);
 #ifdef NOTIFY_OTHERS
     if(flag) {
       notify_others_of_failure(failed_host);
     }
 #endif
+    
   }
 
   pthread_mutex_unlock(&failure_mutex);
 }
 
-void local_handle_failure(host_list_node *failed_host_prev) {
+void local_handle_failure(host_list_node *failed_host) {
+  int flag = 0;
   pthread_mutex_lock(&server_list_mutex);
-  remove_from_host_list(failed_host_prev, server_list);
-  //update_q_host_failed(failed_host, activeQueue); fix
+  if(failed_host == my_host->next) {
+    flag = 1;
+  }
+  remove_from_host_list(failed_host, server_list);
   pthread_mutex_unlock(&server_list_mutex);
+  if(flag) {
+    update_q_host_failed();
+  }
 }
 
-host_list_node *find_prev_host_in_list(char *hostname, host_list *list) {
+
+host_list_node *find_host_in_list(char *hostname, host_list *list) {
   //this returns the prev of the item we want
   host_list_node *current_node;
   current_node = list->head;
   do { 
-    if (!strcmp(current_node->next->host->ip,hostname))
+    if (!strcmp(current_node->host->ip,hostname))
       return current_node;
     current_node = current_node->next;
   } while(current_node != list->head);
   return NULL;
 }
 
-int remove_from_host_list(host_list_node *prev, host_list *list) {
-  host_list_node *to_remove = prev->next;
+int remove_from_host_list(host_list_node *to_remove, host_list *list) {
+  host_list_node *prev = to_remove->prev;
   if(to_remove == list->head) {
     list->head = list->head->next;
     list->head->host->location = 0;
@@ -49,8 +57,9 @@ int remove_from_host_list(host_list_node *prev, host_list *list) {
   if(to_remove == heartbeat_dest) {
     heartbeat_dest = heartbeat_dest->next;
   }
+  
   prev->next = to_remove->next;
-  to_remove->next;
+  to_remove->next->prev = prev;
   
   if(failed_hosts) {
     add_node_to_host_list(to_remove, failed_hosts->head);
@@ -112,10 +121,3 @@ void inform_of_failure(int connection, host_port *failed_host) {
   }
 }
 
-void update_q_host_failed (host_port* failed_host, queue *Q) {
-   job_list_node *current;
-   current = Q->head;
-   while(current != NULL) {
-       current = current->next;
-   } 
-}

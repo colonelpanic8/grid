@@ -66,7 +66,6 @@ void update_job_count(queue *Q, int update);
 void add_host_to_list_by_location(host_port *host, host_list *list);
 host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *where_to_add);
 host_list *new_host_list(host_port *initial_host_port);
-host_port *find_host_in_list(char *hostname, host_list *list);
 host_port *get_hostport_from_connection(int connection);
 int receive_host_list(int connection, host_list **list);
 void free_host_list(host_list *list, int flag);
@@ -75,11 +74,11 @@ void host_port_copy(host_port *src, host_port *dst);
 
 // failure functions
 void handle_failure(char *ip, int flag);
-void local_handle_failure(host_list_node *failed_host_prev);
-host_list_node *find_prev_host_in_list(char *hostname, host_list *list);
-int remove_from_host_list(host_list_node *prev, host_list *list);
+void local_handle_failure(host_list_node *failed_host);
+host_list_node *find_host_in_list(char *hostname, host_list *list);
+int remove_from_host_list(host_list_node *to_remove, host_list *list);
 host_list_node *add_node_to_host_list(host_list_node *added_node, host_list_node *where_to_add);
 host_list *new_host_list_by_node(host_list_node *node);
 void notify_others_of_failure(host_port *failed_host);
 void inform_of_failure(int connection, host_port *failed_host);
-void update_q_host_failed (host_port* failed_host, queue *Q);
+void update_q_host_failed ();
