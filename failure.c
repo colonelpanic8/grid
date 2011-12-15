@@ -46,9 +46,13 @@ host_list_node *find_host_in_list(char *hostname, host_list *list) {
 
 int remove_from_host_list(host_list_node *to_remove, host_list *list) {
   host_list_node *prev = to_remove->prev;
+  int flag = 0;
   if(to_remove == list->head) {
     list->head = list->head->next;
     list->head->host->location = 0;
+    if(list->head == my_host) {
+      flag = 1;
+    }
   }
   if(to_remove == my_host)
     problem("Removing myself from the server_list?... Should not happen\n");
@@ -63,7 +67,10 @@ int remove_from_host_list(host_list_node *to_remove, host_list *list) {
     add_node_to_host_list(to_remove, failed_hosts->head);
   } else {
     failed_hosts = new_host_list_by_node(to_remove);
-  } 
+  }
+  if(flag) {
+    redistribute_jobs(my_queue);
+  }
 }
 
 host_list_node *add_node_to_host_list(host_list_node *node, host_list_node *where_to_add) {

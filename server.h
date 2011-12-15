@@ -60,7 +60,7 @@ void queue_setup();
 void free_job_node(job_list_node *item);
 void free_queue(queue *Q);
 void update_job_count(queue *Q, int update);
-
+void replicate_my_jobs();
 
 // linked list and host-port handling
 void add_host_to_list_by_location(host_port *host, host_list *list);

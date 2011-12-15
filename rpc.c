@@ -148,10 +148,9 @@ void rpc_receive_announce(int connection) {
 #endif
     redistribute_jobs(my_queue);
   }
-#ifdef VERBOSE
-  else
-    printf("Redistributing some jobs to the new node\n");
-#endif
+  if(my_host->next->host == incoming) {
+    replicate_my_jobs();
+  }
   
 }
 

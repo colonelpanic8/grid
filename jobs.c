@@ -127,34 +127,47 @@ void free_job_node(job_list_node *item) {
 }
 
 int remove_job(job_list_node *item, queue *list) {
+
   if(item->prev) {
     pthread_mutex_lock(&(item->prev->lock));
   } else {
     pthread_mutex_lock(&(list->head_lock));
   }
+
   pthread_mutex_lock(&(item->lock));
+
   if(item->next) {
     pthread_mutex_lock(&(item->next->lock));
   } else {
     pthread_mutex_lock(&(list->tail_lock));
   }
+
   if(item->prev) {
     item->prev->next = item->next;
+  } else {
+    list->head = item->next; 
   }
+
   if(item->next) {
     item->next->prev = item->prev;
+  } else {
+    list->tail = item->prev;
   }
+
   if(item->prev) {
     pthread_mutex_unlock(&(item->prev->lock));
   } else {
     pthread_mutex_unlock(&(list->head_lock));
   }
+
   pthread_mutex_unlock(&(item->lock));
+
   if(item->next) {
     pthread_mutex_unlock(&(item->next->lock));
   } else {
     pthread_mutex_unlock(&(list->tail_lock));
   }
+
 }
 
 int transfer_job(host_port *host, job *to_send) {
@@ -173,6 +186,14 @@ int transfer_job(host_port *host, job *to_send) {
   }
   close(connection);
   return 0;
+}
+
+void replicate_my_jobs() {
+  job_list_node *runner = my_queue->head;
+  while(runner) {
+    replicate_job(runner->entry);
+    runner = runner->next;
+  }
 }
 
 int replicate_job(job *to_send) {
