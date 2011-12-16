@@ -60,10 +60,11 @@ int run_a_job(job *to_run) {
   char outpath[BUFFER_SIZE], inpath[BUFFER_SIZE];
   char *error;
   char **argv;
-  argv = malloc(sizeof(char *)*to_run->argc);
+  argv = malloc(sizeof(char *)*(to_run->argc+1));
   for(i = 0; i < to_run->argc; i++) {
     argv[i] = to_run->argv[i];
   }  
+  argv[to_run->argc] = NULL;
   if(forkint = fork()) {
     if(forkint < 0) {
       problem("Unsuccessful fork\n");
