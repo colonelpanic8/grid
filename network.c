@@ -28,7 +28,8 @@ int set_up_listener(int port, int *listener) {
   char hostname[128];
   struct sockaddr_in address;
   int lookup_result, bind_result;
-
+  memset(&address, 0, sizeof(struct sockaddr_in));
+  
   // get a socket
   listen_socket = socket(PF_INET, SOCK_STREAM, TCP_PROTOCOL); 
   if (listen_socket == -1) return CONNECT_ERROR;
