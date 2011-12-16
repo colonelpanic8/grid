@@ -1,6 +1,6 @@
 //These are used to control global program behavior
 #define VERBOSE
-#undef VERBOSE
+//#undef VERBOSE
 #define SHOW_RUNNER_STATUS //Pretty annoying, probably best to leave off except for debugging
 #undef SHOW_RUNNER_STATUS 
 #define GREEDY //servers will take jobs that are added to them no matter where they should go
