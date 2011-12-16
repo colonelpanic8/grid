@@ -207,9 +207,7 @@ int update_job_counts(host_list *update) {
     }
     my_runner = my_runner->next;
     update_runner = update_runner->next;
-  } while(my_runner != server_list->head);
-
-  
+  } while(my_runner != server_list->head);  
 }
 
 int acquire_add_lock(host_list *list) {
@@ -281,20 +279,6 @@ int announce(int connection, host_port *send) {
   status = safe_send(connection, send, sizeof(host_port));
   if(status < 0) problem("Send Failed\n");
   return status;
-}
-
-int send_update(int connection) { //No longer used
-  int okay;
-  int err = RECEIVE_UPDATE;
-  err = do_rpc(&err);
-  if (err < 0) return err;
-  err = send_host_list(connection, server_list);
-  if (err < 0) return err;
-  err = safe_recv(connection, &okay, sizeof(int));
-  if (err < 0) return err;
-  if(okay) {
-    problem("unsuccessful update\n");
-  }
 }
 
 void distribute_update() {
@@ -457,4 +441,31 @@ void listen_for_connection(int *listener) {
   pthread_create(&thread, NULL, (void *(*)(void *))
 		listen_for_connection, listener);
   handle_rpc(connection);
+}
+
+void add_host_to_list_by_location(host_port *host, host_list *list) {
+  host_list_node *runner = list->head;
+  while(runner->next->host->location < host->location && runner->next->host->location != 0) {
+    runner = runner->next;
+  }
+  add_to_host_list(host, runner);
+}
+
+int get_job_id(job *ajob) {
+  pthread_mutex_lock(&count_mutex);
+  ajob->id = my_host->host->location + counter;
+  counter++;
+  pthread_mutex_unlock(&count_mutex);
+  return ajob->id;
+}
+
+int receive_file(int connection, data_size *file) {
+  int err;
+  err = safe_recv(connection, &(file->size), sizeof(size_t));
+  if(err < 0) problem("Recv failed size\n");
+  file->data = malloc(file->size);
+  err = safe_recv(connection, file->data, file->size);
+  if(err < 0) problem("Recv failed data\n");
+  err = safe_recv(connection, file->name, MAX_ARGUMENT_LEN*sizeof(char));
+  if(err < 0) problem("Recv failed name\n");
 }
