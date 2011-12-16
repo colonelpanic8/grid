@@ -1,7 +1,8 @@
 //These are used to control global program behavior
 #define VERBOSE //Adds error messages, and general logging all over the place
 //#undef VERBOSE
-#undef VERBOSE2 //Adds extremely superflous log messages
+#define VERBOSE2
+//#undef VERBOSE2 //Adds extremely superflous log messages
 #define SHOW_RUNNER_STATUS //Pretty annoying, probably best to leave off except for debugging
 #undef SHOW_RUNNER_STATUS 
 #define GREEDY //servers will take jobs that are added to them no matter where they should go
@@ -32,6 +33,7 @@
 #define BUFFER_SIZE 256
 #define MAX_ARGUMENTS 10
 #define MAX_ARGUMENT_LEN 40
+#define EXIT "exit\n"
 
 #define TRANSMISSION_ERROR (-5)
 #define RECEIVER_ERROR (-6)
@@ -89,8 +91,7 @@
 //runner
 
 typedef struct _host_port {
-  int port, jobs;
-  unsigned int location, time_stamp;
+  unsigned int location, time_stamp, id, port, jobs;
   char ip[INET_ADDRSTRLEN];
 } host_port;
 
@@ -103,10 +104,12 @@ typedef struct _host_list_node {
 
 typedef struct _host_list {
   host_list_node *head;
+  unsigned int id;
 } host_list;
 
 typedef struct _job{
-  int id, argc, status, dependent_on[MAX_ARGUMENTS];
+  unsigned int id;
+  int argc, status, dependent_on[MAX_ARGUMENTS];
   char name[MAX_ARGUMENT_LEN], argv[MAX_ARGUMENTS][MAX_ARGUMENT_LEN];
 } job;
 

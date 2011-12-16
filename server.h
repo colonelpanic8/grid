@@ -45,7 +45,7 @@ int redistribute_jobs(queue *Q);
 void print_job_queue(queue *Q);
 int transfer_job(host_port *host, job *to_send);
 int announce(int connection, host_port *host);
-int contains(job *current, int jobid);
+int contains(unsigned int id, queue *Q);
 void remove_dependency(job *current, int jobid);
 void replicate(job *rep_job);
 int receive_file(int connection, data_size *file);
@@ -73,9 +73,9 @@ int send_host_list(int connection, host_list *list);
 void host_port_copy(host_port *src, host_port *dst);
 
 // failure functions
-void handle_failure(char *ip, int flag);
+void handle_failure(host_port *failed_host_c, int flag);
 void local_handle_failure(host_list_node *failed_host);
-host_list_node *find_host_in_list(char *hostname, host_list *list);
+host_list_node *find_host_in_list(unsigned int id, host_list *list);
 int remove_from_host_list(host_list_node *to_remove, host_list *list);
 host_list_node *add_node_to_host_list(host_list_node *added_node, host_list_node *where_to_add);
 host_list *new_host_list_by_node(host_list_node *node);

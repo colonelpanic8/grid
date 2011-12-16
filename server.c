@@ -30,7 +30,7 @@ pthread_mutex_t failure_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *failed_hosts = NULL;
 
 int num_servers, *listener;
-pthread_t *listener_thread = NULL;
+pthread_t listener_thread;
 pthread_t user_thread;
 
 host_list_node *my_host = NULL;
@@ -54,12 +54,12 @@ int main(int argc, char **argv) {
   pthread_t runner_thread;
   host_port *my_hostport;  
   signal(SIGINT, finish);
+  
   //setup jobs folder
   if(mkdir("./jobs", S_IRWXU)) {
     if(errno == EEXIST) {
-#ifdef VERBOSE
-      //problem("Jobs directory already exists...\n");
-      //We probably don't need to see this any more at all
+#ifdef VERBOSE2
+      problem("Jobs directory already exists...\n");
 #endif
     } else {
       problem("mkdir failed with %d\n", errno);
@@ -70,17 +70,21 @@ int main(int argc, char **argv) {
   my_hostport = malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
   my_hostport->port = atoi(argv[1]);
+  while(my_hostport->port < 1000) 
+    scanf("%d", &(my_hostport->port));
   my_hostport->jobs = 0;
   my_hostport->time_stamp = 0;
   my_hostport->location = 0;
+  my_hostport->id = 0;
   listener_set_up(my_hostport);
 
-  if(argc < 3) {
+  if(argc < 4) {
     server_list = new_host_list(my_hostport);
     my_host = server_list->head;
     print_server_list();
   } else {
     if(get_servers(argv[2], atoi(argv[3]), 1, &server_list) < 0) {
+      problem("Get servers failed!\n");
       exit(FAILURE);
     }
     if(acquire_add_lock(server_list)) {
@@ -89,6 +93,8 @@ int main(int argc, char **argv) {
       finish(0);
       exit(-1);
     }
+    my_hostport->id = server_list->id;
+    server_list->id++;
     my_host = integrate_host(my_hostport);
     print_server_list();
     distribute_update();
@@ -105,6 +111,8 @@ int print_method() {
   char buffer[BUFFER_SIZE];
   while(1) {
     fgets(buffer, BUFFER_SIZE-1, stdin);
+    if(!strcmp(buffer, EXIT))
+      finish(0);
     print_server_list();
     print_my_job_queue();
     print_job_queue(backup_queue);
@@ -131,13 +139,8 @@ host_list_node *integrate_host(host_port *host) {
 
 
 void finish(int sig) {
-  printf("\nFinishing:\n");
-  if(listener_thread) {
-#ifdef VERBOSE
-    printf("Killing listener thread.\n");
-#endif
-    pthread_kill(*listener_thread, SIGTERM);
-  }
+  printf(BAR);
+  printf("Finishing:\n");
   free(listener);
 #ifdef VERBOSE
   printf("Freeing queues.\n");
@@ -162,6 +165,13 @@ void finish(int sig) {
   pthread_mutex_destroy(&count_mutex);
   pthread_mutex_destroy(&server_list_mutex);
   pthread_mutex_destroy(&failure_mutex);
+  if(listener_thread) {
+#ifdef VERBOSE
+    printf("Killing listener thread.\n");
+#endif
+    pthread_kill(listener_thread, SIGTERM);
+  }
+  printf(BAR);
   exit(0);
 }
 
@@ -171,7 +181,7 @@ int heartbeat() {
     host_list *incoming;
     err = make_connection_with(heartbeat_dest->host->ip, heartbeat_dest->host->port, &connection);
     if (err < OKAY) {
-      handle_failure(heartbeat_dest->host->ip, 1);
+      handle_failure(heartbeat_dest->host, 1);
       return FAILURE;
     }
     err = HEARTBEAT;
@@ -193,11 +203,9 @@ int update_job_counts(host_list *update) {
   my_runner = server_list->head;
   update_runner = update->head;
   do {
-#ifdef CAREFUL
-    if(strcmp(my_runner->host->ip, update_runner->host->ip)) {
+    if(my_runner->host->id != update_runner->host->id) {
       problem("Heartbeat update did not agree with our current serverlist.\n");
     }
-#endif
     if(my_runner->host->time_stamp < update_runner->host->time_stamp) {
       my_runner->host->time_stamp = update_runner->host->time_stamp;
       my_runner->host->jobs = update_runner->host->jobs;
@@ -238,7 +246,10 @@ int relinquish_add_lock(host_list *list) {
       //consider changing updates to work by sending only the identity of the current node?
       err = make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY) {
-	handle_failure(runner->host->ip, 1);
+	//probably don't want to handle failures here
+	//or maybe it is essential
+	problem("Urgent, failure in reliquishing add_lock\n");
+	handle_failure(runner->host, 1);
       } else {
 	err = tell_to_unlock(connection);
       }
@@ -268,6 +279,9 @@ int request_add_lock(int connection) {
 int announce(int connection, host_port *send) {
   int status = ANNOUNCE;
   status = do_rpc(&status);
+#ifdef VERBOSE2
+  printf("Sending announce\n");
+#endif
   if(status < 0){
     problem("Failed to acknowledge announce\n");
     problem("Send Failed\n");
@@ -285,10 +299,10 @@ void distribute_update() {
   current_node = server_list->head;
 
   do {
-    if(strcmp(current_node->host->ip, my_host->host->ip)) {
+    if(current_node != my_host) {
       err = make_connection_with(current_node->host->ip, 
 				 current_node->host->port, &connection);
-      if (err < OKAY) handle_failure(current_node->host->ip, 1);
+      if (err < OKAY) handle_failure(current_node->host, 1);
       err = announce(connection, my_host->host);
       close(connection);
     }
@@ -319,9 +333,11 @@ int send_host_list(int connection, host_list *list) {
   
   //send
   err = safe_send(connection, &num, sizeof(int));
-  if(err < 0) return err;
+  if(err < OKAY) return err;
   err = safe_send(connection, hosts, sizeof(host_port)*num);
-  if(err < 0) return err;
+  if(err < OKAY) return err;
+  err = safe_send(connection, &(list->id), sizeof(unsigned int));
+  if(err < OKAY) return err;
 
   return OKAY;
 }
@@ -330,6 +346,7 @@ int receive_host_list(int connection, host_list **list) {
   int err, num, i;
   host_port *hosts, *temp;
   host_list_node *runner;
+  unsigned int id;
   num = 0;
   //size of array
   err = safe_recv(connection, &num, sizeof(int));
@@ -337,6 +354,9 @@ int receive_host_list(int connection, host_list **list) {
   hosts = malloc(sizeof(host_port)*num);
   err = safe_recv(connection, hosts, sizeof(host_port)*num);
   if(err < OKAY) return err;
+  err = safe_recv(connection, &id, sizeof(unsigned int));
+  if(err < OKAY) return err;
+  
   
   //we malloc new host ports so that freeing is easy later
   //we cant just use the memory we allocated earlier as an array
@@ -345,6 +365,7 @@ int receive_host_list(int connection, host_list **list) {
   memcpy(temp, &hosts[0], sizeof(host_port));
   *list = new_host_list(temp);
   runner = (*list)->head;
+  (*list)->id = id;
   for(i = 1; i < num; i++) {
     temp = malloc(sizeof(host_port));
     memcpy(temp, &hosts[i], sizeof(host_port));
@@ -373,6 +394,7 @@ host_list *new_host_list(host_port *initial_host_port) {
   new_list->head->host = initial_host_port;
   new_list->head->next = new_list->head;
   new_list->head->prev = new_list->head;
+  new_list->id = 1;
   pthread_mutex_init(&(new_list->head->lock), NULL);
   return new_list;
 }
@@ -395,7 +417,7 @@ void print_server_list() {
   printf("Servers:\n");
   current_node = server_list->head;
   do {
-    printf("\tIP: %s, port: %d, location: %d, jobs: %d, timestamp: %d\n",
+    printf("\tid: %u, ip: %s, port: %u, location: %u, jobs: %u, timestamp: %u\n", current_node->host->id,
 	   current_node->host->ip, current_node->host->port,
 	   current_node->host->location, current_node->host->jobs, current_node->host->time_stamp);
     current_node = current_node->next;
@@ -419,23 +441,19 @@ int get_servers(char *hostname, int port, int add_slots, host_list **list) {
 }
 
 void listener_set_up(host_port *info) {
-  pthread_t thread;
   int connect_result;
-  listener_thread = &thread;
   listener = malloc(sizeof(int));
   connect_result = set_up_listener(info->port, listener);
-  pthread_create(&thread, NULL, (void *(*)(void *))listen_for_connection, listener);
+  pthread_create(&listener_thread, NULL, (void *(*)(void *))listen_for_connection, listener);
 }
 
 void listen_for_connection(int *listener) {
   int connection, connect_result;
-  pthread_t thread;
   connect_result = -1;
   do {
     connect_result = wait_for_connection(*listener, &connection);
   } while(connect_result < 0);
-  listener_thread = &thread;
-  pthread_create(&thread, NULL, (void *(*)(void *))
+  pthread_create(&listener_thread, NULL, (void *(*)(void *))
 		listen_for_connection, listener);
   handle_rpc(connection);
 }

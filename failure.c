@@ -1,17 +1,15 @@
-void handle_failure(char *ip, int flag) {
+void handle_failure(host_port *failed_host_c, int flag) {
   host_list_node *failed_host_node;
-  host_port *failed_host;
   pthread_mutex_lock(&failure_mutex);
   
-  if(failed_host_node = find_host_in_list(ip, server_list)) {
+  if(failed_host_node = find_host_in_list(failed_host_c->id, server_list)) {
 #ifdef VERBOSE
-    printf("Host failure %s\n", ip);
+    printf("Host failure %s\n", failed_host_c->ip);
 #endif
-    failed_host = failed_host_node->host;
     local_handle_failure(failed_host_node);
 #ifdef NOTIFY_OTHERS
     if(flag) {
-      notify_others_of_failure(failed_host);
+      notify_others_of_failure(failed_host_c);
     }
 #endif
     
@@ -32,12 +30,12 @@ void local_handle_failure(host_list_node *failed_host) {
 }
 
 
-host_list_node *find_host_in_list(char *hostname, host_list *list) {
+host_list_node *find_host_in_list(unsigned int id, host_list *list) {
   //this returns the prev of the item we want
   host_list_node *current_node;
   current_node = list->head;
   do { 
-    if (!strcmp(current_node->host->ip,hostname))
+    if (id == current_node->host->id)
       return current_node;
     current_node = current_node->next;
   } while(current_node != list->head);
@@ -93,7 +91,7 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
   host_list_node* current_node;
   current_node = server_list->head;
   do {
-    if(strcmp(current_node->host->ip,my_host->host->ip)) {
+    if(current_node != my_host) {
 #ifdef VERBOSE
       printf("Notifying %s and my ip is %s\n", current_node->host->ip,my_host->host->ip);
 #endif

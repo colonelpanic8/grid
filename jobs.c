@@ -174,7 +174,7 @@ int transfer_job(host_port *host, job *to_send) {
   int connection, err;
   err = make_connection_with(host->ip, host->port, &connection);
   if (err < OKAY) {
-    handle_failure(host->ip, 1);
+    handle_failure(host, 1);
     return FAILURE;
   }
   err = TRANSFER_JOB;
@@ -200,7 +200,7 @@ int replicate_job(job *to_send) {
   int connection, err;
   err = make_connection_with(my_host->next->host->ip, my_host->next->host->port, &connection);
   if (err < OKAY) {
-    handle_failure(my_host->next->host->ip, 1);
+    handle_failure(my_host->next->host, 1);
     return FAILURE;
   }
   err = RECEIVE_JOB_COPY;
@@ -312,7 +312,7 @@ job *get_remote_job() {
   }
   err = make_connection_with(server->ip, server->port, &connection);
   if (err < OKAY) { 
-    handle_failure(server->ip, 1);
+    handle_failure(server, 1);
     return NULL;
   }
   err = SERVE_JOB;
@@ -388,6 +388,29 @@ void add_to_queue(job *addJob, queue *Q) {
   pthread_mutex_unlock(&(Q->tail_lock));
   pthread_mutex_unlock(&(n->lock));
   update_job_count(Q, 1);
+}
+
+int contains(unsigned int id, queue *Q) {
+  //thread_safe contains... but the result might be meaningless
+  //although given design principles, probably not
+  job_list_node *runner;
+  pthread_mutex_t *last_lock;
+  last_lock = (&(Q->head_lock));
+  pthread_mutex_lock(last_lock);
+  runner = Q->head;
+  while(runner) {
+    pthread_mutex_lock(&(runner->lock));
+    if(runner->entry->id == id) {
+      pthread_mutex_unlock(&(runner->lock));
+      pthread_mutex_unlock(last_lock);
+      return 1;
+    } 
+    runner = runner->next;
+    pthread_mutex_unlock(last_lock);
+    last_lock = &(runner->lock);
+  }
+  pthread_mutex_unlock(last_lock);
+  return 0;
 }
 
 
