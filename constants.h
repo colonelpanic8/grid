@@ -17,7 +17,7 @@
 #undef DEPENDENCIES
 
 #define NO_DEQUEUE //This prevents the runner from ever dequeing jobs, so that we can see what happens when nodes maintain large queues
-#undef NO_DEQUEUE
+//#undef NO_DEQUEUE
 
 #define RUNNER_REST 1 //How long the runner waits between heartbeats
 #define DISPLAY 5 //How many heartbeats to wait to display info
