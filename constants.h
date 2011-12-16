@@ -1,6 +1,6 @@
 //These are used to control global program behavior
 #define VERBOSE //Adds error messages, and general logging all over the place
-#undef VERBOSE
+//#undef VERBOSE
 #undef VERBOSE2 //Adds extremely superflous log messages
 #define SHOW_RUNNER_STATUS //Pretty annoying, probably best to leave off except for debugging
 #undef SHOW_RUNNER_STATUS 

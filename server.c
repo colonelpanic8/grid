@@ -31,6 +31,7 @@ host_list *failed_hosts = NULL;
 
 int num_servers, *listener;
 pthread_t *listener_thread = NULL;
+pthread_t user_thread;
 
 host_list_node *my_host = NULL;
 host_list_node *heartbeat_dest = NULL;
@@ -95,7 +96,7 @@ int main(int argc, char **argv) {
   }
   heartbeat_dest = my_host->next;
   
-  pthread_create(&runner_thread, NULL, (void *(*)(void *))print_method, NULL);
+  pthread_create(&user_thread, NULL, (void *(*)(void *))print_method, NULL);
   pthread_create(&runner_thread, NULL, (void *(*)(void *))runner, NULL);
   pthread_join(runner_thread, NULL);
 }
@@ -135,12 +136,8 @@ void finish(int sig) {
 #ifdef VERBOSE
     printf("Killing listener thread.\n");
 #endif
-    pthread_kill(*listener_thread, SIGABRT);
+    pthread_kill(*listener_thread, SIGTERM);
   }
-#ifdef VERBOSE
-  printf("Closing listener socket.\n");
-#endif
-  close(*listener);
   free(listener);
 #ifdef VERBOSE
   printf("Freeing queues.\n");
