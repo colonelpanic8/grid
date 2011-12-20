@@ -1,34 +1,58 @@
-//These are used to control global program behavior
-#define VERBOSE //Adds error messages, and general logging all over the place
-//#undef VERBOSE
-#define VERBOSE2
-#undef VERBOSE2 //Adds extremely superflous log messages
-#define SHOW_RUNNER_STATUS //Pretty annoying, probably best to leave off except for debugging
-#undef SHOW_RUNNER_STATUS 
-#define GREEDY //servers will take jobs that are added to them no matter where they should go
-#undef GREEDY
-#define ENABLE_HEARTBEAT //turns heartbeat on or off
-#define SHOW_HEARTBEAT //Pretty annoying as well, shows every heartbeat message
-#undef SHOW_HEARTBEAT
-#define NOTIFY_OTHERS //of failure
+#define TESTING                 //Enable to make the configureable settings below take effect.
+//#undef  TESTING
+
+#ifdef TESTING
+
+#define VERBOSE                 //Adds error messages, and general logging all over the place
+//#undef  VERBOSE
+
+#define VERBOSE2                //Adds extremely superflous log messages
+#undef  VERBOSE2
+
+#define SHOW_RUNNER_STATUS      //Pretty annoying, probably best to leave off except for debugging
+#undef  SHOW_RUNNER_STATUS
+
+#define GREEDY                  //Servers will take jobs that are added to them no matter where they should go
+#undef  GREEDY
+
+#define ENABLE_HEARTBEAT        //Turns heartbeat on or off
+//#undef  ENABLE_HEARTBEAT
+
+#define SHOW_HEARTBEAT          //Pretty annoying as well, shows every heartbeat message
+#undef  SHOW_HEARTBEAT
+
+#define NOTIFY_OTHERS           //...of failure
+#undef  NOTIFY_OTHERS
+
+#define RUN_JOBS                //Controls whether or not the runner thread actually runs jobs.
+//#undef  RUN_JOBS
+
+#define RUN_LOCAL               //When this is undefined, only remote jobs will be processed
+//#undef  RUN_LOCAL
+
+#define DEPENDENCIES            //Enables dependency handling
+#undef  DEPENDENCIES
+
+#define NO_DEQUEUE              //This prevents the runner from ever dequeing jobs, so that we can see what happens when nodes maintain large queues
+//#undef  NO_DEQUEUE
+
+#else
+
+#define ENABLE_HEARTBEAT
+#define NOTIFY_OTHERS
 #define RUN_JOBS
-//#undef RUN_JOBS 
-#define RUN_LOCAL //When this is undefined, only remote jobs will be processed
-//#undef RUN_LOCAL
-#undef DEPENDENCIES //Dependencies do not yet exist
+#define RUN_LOCAL
+#define DEPENDENCIES
 
-#define TESTING //Should only be defined when we are testing failure
+#endif
 
-#define NO_DEQUEUE //This prevents the runner from ever dequeing jobs, so that we can see what happens when nodes maintain large queues
-//#undef NO_DEQUEUE
-
-#define RUNNER_REST 1 //How long the runner waits between heartbeats (in seconds)
-#define DISPLAY 5 //How many heartbeats to wait to display info
-
-//
+//Macros
 #define do_rpc(...)        safe_send(connection, __VA_ARGS__, sizeof(int))
 #define problem(...)       fprintf(stderr, __VA_ARGS__)
 #define printfl(...)       printf(__VA_ARGS__); printf("\n")
+
+#define RUNNER_REST 1 //How long the runner waits between heartbeats (in seconds)
+#define DISPLAY 5 //How many heartbeats to wait to display info
 
 #define BAR "--------------------------------------------------------------------------------------------------------------\n"
 #define RPC_STR "-/R/P/C/- "
@@ -89,8 +113,8 @@
 #define RUNNING 1
 #define COMPLETED 2
 
-//runner
 
+//Data Types
 typedef struct _host_port {
   unsigned int location, time_stamp, id, port, jobs;
   char ip[INET_ADDRSTRLEN];

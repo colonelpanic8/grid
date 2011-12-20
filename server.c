@@ -451,11 +451,10 @@ void print_server_list() {
     printf("%-5u | %-15s | %-5u | %-5u | %-5u | %-5u", 
 	   current_node->host->id, current_node->host->ip, current_node->host->port,
 	   current_node->host->location, current_node->host->jobs, current_node->host->time_stamp);
-    if(current_node == my_host) {
-      printf(" (Me)");
-    }
     printf("prev: %u, self: %u, next: %u", 
 	   current_node->prev->host->id, current_node->host->id, current_node->next->host->id);
+    if(current_node == my_host)
+      printf(" (Me)");
     printf("\n");
     current_node = current_node->next;
   } while(current_node != server_list->head);
