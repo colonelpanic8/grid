@@ -52,10 +52,12 @@ char who[INET_ADDRSTRLEN];
 int main(int argc, char **argv) {
   char name[INET_ADDRSTRLEN];
   pthread_t runner_thread;
-  host_port *my_hostport;  
+  host_port *my_hostport;
+  
+  //Set our termination method
   signal(SIGINT, finish);
   
-  //setup jobs folder
+  //Setup Jobs Folder
   if(mkdir("./jobs", S_IRWXU)) {
     if(errno == EEXIST) {
 #ifdef VERBOSE2
@@ -66,7 +68,13 @@ int main(int argc, char **argv) {
     }
   }
   
-  queue_setup();
+  //Setup Job Queue
+  my_queue = (queue *)malloc(sizeof(queue));
+  backup_queue = (queue *)malloc(sizeof(queue));
+  init_queue(my_queue);
+  init_queue(backup_queue);
+
+  //Build host_port
   my_hostport = malloc(sizeof(host_port));
   get_my_ip(my_hostport->ip);
   my_hostport->port = atoi(argv[1]);
@@ -76,6 +84,8 @@ int main(int argc, char **argv) {
   my_hostport->time_stamp = 0;
   my_hostport->location = 0;
   my_hostport->id = 0;
+  
+  //Start listener
   listener_set_up(my_hostport);
 
   if(argc < 4) {
@@ -102,9 +112,21 @@ int main(int argc, char **argv) {
   }
   heartbeat_dest = my_host->next;
   
+  //User interaction thread
   pthread_create(&user_thread, NULL, (void *(*)(void *))print_method, NULL);
+  
+  //Runner/Heartbeat thread
   pthread_create(&runner_thread, NULL, (void *(*)(void *))runner, NULL);
   pthread_join(runner_thread, NULL);
+}
+
+int connect_to(host_list_node *server, int *connection) {
+  pthread_mutex_lock(&(server->lock));
+  make_connection_with(server->host->ip, server->host->port, connection);
+}
+
+int _do_rpc(int connection, char rpc) {
+  return safe_send(connection, &rpc, sizeof(char));
 }
 
 int print_method() {
@@ -114,7 +136,7 @@ int print_method() {
     if(!strcmp(buffer, EXIT))
       finish(0);
     print_server_list();
-    print_my_job_queue();
+    print_job_queue(my_queue);
     print_job_queue(backup_queue);
   }
 }
@@ -165,6 +187,7 @@ void finish(int sig) {
   pthread_mutex_destroy(&count_mutex);
   pthread_mutex_destroy(&server_list_mutex);
   pthread_mutex_destroy(&failure_mutex);
+  pthread_mutex_destroy(&d_add_mutex);
   if(listener_thread) {
 #ifdef VERBOSE
     printf("Killing listener thread.\n");
@@ -182,6 +205,7 @@ int heartbeat() {
     err = make_connection_with(heartbeat_dest->host->ip, heartbeat_dest->host->port, &connection);
     if (err < OKAY) {
       handle_failure(heartbeat_dest->host, 1);
+      heartbeat_dest = heartbeat_dest->next;
       return FAILURE;
     }
     err = HEARTBEAT;
@@ -242,12 +266,9 @@ int relinquish_add_lock(host_list *list) {
   host_list_node *runner;
   runner = list->head;
   do {
-    if(runner != my_host) { //possibly needs to be changed give the current update structure
-      //consider changing updates to work by sending only the identity of the current node?
+    if(runner != my_host) {
       err = make_connection_with(runner->host->ip, runner->host->port, &connection);
       if (err < OKAY) {
-	//probably don't want to handle failures here
-	//or maybe it is essential
 	problem("Urgent, failure in reliquishing add_lock\n");
 	handle_failure(runner->host, 1);
       } else {
@@ -405,24 +426,62 @@ host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *whe
   new_node->host = added_host_port;
   pthread_mutex_init(&(new_node->lock), NULL);
 
+  new_node->prev = where_to_add;
   new_node->next = where_to_add->next;
-  new_node->prev = where_to_add->next;
-  where_to_add->next->prev = new_node;
   where_to_add->next = new_node;
+  new_node->next->prev = new_node;
   return new_node;
 }
 
+#ifdef TESTING
 void print_server_list() {
-  host_list_node* current_node;
-  printf("Servers:\n");
+  host_list_node *current_node, *last = NULL;
+  int count = 0;
+  printf(BAR);
+  printf("Server List:\n");
   current_node = server_list->head;
+  printf("%-5s   %-15s   %-5s   %-5s   %-5s   %-5s\n",
+	 "id", "ip", "port", "hash", "#jobs", "stamp");
   do {
-    printf("\tid: %u, ip: %s, port: %u, location: %u, jobs: %u, timestamp: %u\n", current_node->host->id,
-	   current_node->host->ip, current_node->host->port,
+    if(last == current_node || count > 50) {
+      problem("Print server list should have finished, but it did not\n");
+      break;
+    }
+    last = current_node;
+    printf("%-5u | %-15s | %-5u | %-5u | %-5u | %-5u", 
+	   current_node->host->id, current_node->host->ip, current_node->host->port,
 	   current_node->host->location, current_node->host->jobs, current_node->host->time_stamp);
+    if(current_node == my_host) {
+      printf(" (Me)");
+    }
+    printf("prev: %u, self: %u, next: %u", 
+	   current_node->prev->host->id, current_node->host->id, current_node->next->host->id);
+    printf("\n");
     current_node = current_node->next;
   } while(current_node != server_list->head);
+  printf(BAR);
 }
+#else
+void print_server_list() {
+  host_list_node* current_node;
+  printf(BAR);
+  printf("Server List:\n");
+  current_node = server_list->head;
+  printf("%-5s   %-15s   %-5s   %-5s   %-5s   %-5s\n", 
+	 "id", "ip", "port", "hash", "#jobs", "stamp");
+  do {
+    printf("%-5u | %-15s | %-5u | %-5u | %-5u | %-5u", 
+	   current_node->host->id, current_node->host->ip, current_node->host->port,
+	   current_node->host->location, current_node->host->jobs, current_node->host->time_stamp);
+    if(current_node == my_host) {
+      printf(" (Me)");
+    }
+    printf("\n");
+    current_node = current_node->next;
+  } while(current_node != server_list->head);
+  printf(BAR);
+}
+#endif
 
 int get_servers(char *hostname, int port, int add_slots, host_list **list) {
   int connection = 0;

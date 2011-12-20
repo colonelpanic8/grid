@@ -1,12 +1,19 @@
 void handle_failure(host_port *failed_host_c, int flag) {
   host_list_node *failed_host_node;
+#ifdef VERBOSE
+  printf("Call to handle_failure\n");
+#endif
+  
   pthread_mutex_lock(&failure_mutex);
   
   if(failed_host_node = find_host_in_list(failed_host_c->id, server_list)) {
+    
 #ifdef VERBOSE
-    printf("Host failure %s\n", failed_host_c->ip);
+    printf("Host failure %s (id: %d)\n", failed_host_c->ip, failed_host_c->id);
 #endif
+
     local_handle_failure(failed_host_node);
+
 #ifdef NOTIFY_OTHERS
     if(flag) {
       notify_others_of_failure(failed_host_c);
@@ -31,7 +38,6 @@ void local_handle_failure(host_list_node *failed_host) {
 
 
 host_list_node *find_host_in_list(unsigned int id, host_list *list) {
-  //this returns the prev of the item we want
   host_list_node *current_node;
   current_node = list->head;
   do { 
@@ -46,6 +52,9 @@ int remove_from_host_list(host_list_node *to_remove, host_list *list) {
   host_list_node *prev = to_remove->prev;
   int flag = 0;
   if(to_remove == list->head) {
+#ifdef VERBOSE
+    printf("Head changed from %d to %d\n", list->head->host->id, list->head->next->host->id);
+#endif
     list->head = list->head->next;
     list->head->host->location = 0;
     if(list->head == my_host) {
@@ -55,7 +64,7 @@ int remove_from_host_list(host_list_node *to_remove, host_list *list) {
   if(to_remove == my_host)
     problem("Removing myself from the server_list?... Should not happen\n");
   if(to_remove == heartbeat_dest) {
-    heartbeat_dest = heartbeat_dest->next;
+    heartbeat_dest = my_host;
   }
   
   prev->next = to_remove->next;
@@ -72,7 +81,9 @@ int remove_from_host_list(host_list_node *to_remove, host_list *list) {
 }
 
 host_list_node *add_node_to_host_list(host_list_node *node, host_list_node *where_to_add) {
+  node->prev = where_to_add;
   node->next = where_to_add->next;
+  node->next->prev = node;
   where_to_add->next = node;
   return node;
 }
@@ -100,7 +111,8 @@ void notify_others_of_failure(host_port *failed_host) { // tell everyone
 				 &connection);
       if (err < OKAY) { 
 	problem("Handle host failure in a handle host failure\n");
-	//handle_failure(current_node->host->ip, 0);
+	problem("failed to connect to %s, with id, %d\n", current_node->host->ip, current_node->host->id);
+	print_server_list(server_list);
       } else { 
 	inform_of_failure(connection,failed_host);
       }

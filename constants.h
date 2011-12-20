@@ -2,7 +2,7 @@
 #define VERBOSE //Adds error messages, and general logging all over the place
 //#undef VERBOSE
 #define VERBOSE2
-//#undef VERBOSE2 //Adds extremely superflous log messages
+#undef VERBOSE2 //Adds extremely superflous log messages
 #define SHOW_RUNNER_STATUS //Pretty annoying, probably best to leave off except for debugging
 #undef SHOW_RUNNER_STATUS 
 #define GREEDY //servers will take jobs that are added to them no matter where they should go
@@ -13,26 +13,30 @@
 #define NOTIFY_OTHERS //of failure
 #define RUN_JOBS
 //#undef RUN_JOBS 
-#define RUN_LOCAL
+#define RUN_LOCAL //When this is undefined, only remote jobs will be processed
 //#undef RUN_LOCAL
-#undef DEPENDENCIES
+#undef DEPENDENCIES //Dependencies do not yet exist
+
+#define TESTING //Should only be defined when we are testing failure
 
 #define NO_DEQUEUE //This prevents the runner from ever dequeing jobs, so that we can see what happens when nodes maintain large queues
 //#undef NO_DEQUEUE
 
-#define RUNNER_REST 1 //How long the runner waits between heartbeats
+#define RUNNER_REST 1 //How long the runner waits between heartbeats (in seconds)
 #define DISPLAY 5 //How many heartbeats to wait to display info
 
 //
-#define do_rpc(...) safe_send(connection, __VA_ARGS__, sizeof(int))
+#define do_rpc(...)        safe_send(connection, __VA_ARGS__, sizeof(int))
 #define problem(...)       fprintf(stderr, __VA_ARGS__)
 #define printfl(...)       printf(__VA_ARGS__); printf("\n")
 
-#define BAR "--------------------------------------------------------------------------------\n"
+#define BAR "--------------------------------------------------------------------------------------------------------------\n"
+#define RPC_STR "-/R/P/C/- "
 #define NUM_REPLICAS 2
 #define BUFFER_SIZE 256
 #define MAX_ARGUMENTS 10
 #define MAX_ARGUMENT_LEN 40
+
 #define EXIT "exit\n"
 
 #define TRANSMISSION_ERROR (-5)
@@ -63,9 +67,6 @@
 
 #define REQUEST_ADD_LOCK 6
 #define REQUEST_ADD_LOCK_S "Request Add Lock"
-
-#define RECEIVE_IDENTITY 7
-#define RECEIVE_IDENTITY_S "Receive Identity"
 
 #define ADD_JOB 8
 #define ADD_JOB_S "Add Job"

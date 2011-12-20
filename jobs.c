@@ -1,10 +1,3 @@
-void queue_setup() {
-  my_queue = (queue *)malloc(sizeof(queue));
-  backup_queue = (queue *)malloc(sizeof(queue));
-  init_queue(my_queue);
-  init_queue(backup_queue);
-}
-
 void init_queue(queue *Q) {
   Q->head = NULL;
   Q->tail = NULL;
@@ -37,15 +30,15 @@ void print_job_queue(queue *Q) {
   job_list_node *runner;
   runner = Q->head;
   printf(BAR);
-  printf("Jobs:\n");
+  printf("Jobs (%d active):\n", Q->active_jobs);
   while(runner) {
     printf("\tName: %s, ID: %d, Hash: %d", runner->entry->name, runner->entry->id,
 	   hash(runner->entry->name, runner->entry->id));
     if(runner == Q->head) {
-      printf("(Head)");
+      printf(" (Head)");
     }
     if(runner == Q->tail) {
-      printf("(Tail)");
+      printf(" (Tail)");
     }
     printf("\n");
     runner = runner->next;
@@ -70,7 +63,7 @@ int redistribute_jobs(queue *Q) {
     if(dest != my_host) {
       remove_job(prev, my_queue);
       transfer_job(dest->host, prev->entry);
-
+      
       if(prev->entry->status == READY) {
 	count++;
 	update_job_count(Q, -1);
@@ -82,14 +75,9 @@ int redistribute_jobs(queue *Q) {
 }
 
 void update_q_host_failed () {
-  //Thought: no thread safety because we will only ever do this one at a time
-  //Is this worth implementing differently?
   job_list_node *prev, *runner = backup_queue->head;
   host_list_node *dest;
   while(runner != NULL) {
-#ifdef VERBOSE
-    print_job_queue(backup_queue);
-#endif
     prev = runner;
     runner = runner->next;
     dest = determine_ownership(prev->entry);
@@ -167,7 +155,6 @@ int remove_job(job_list_node *item, queue *list) {
   } else {
     pthread_mutex_unlock(&(list->tail_lock));
   }
-
 }
 
 int transfer_job(host_port *host, job *to_send) {
@@ -221,7 +208,8 @@ int send_meta_data(job *ajob) {
 #else
   if(dest == my_host) {
     add_to_queue(ajob, my_queue);
-    replicate_job(ajob);
+    if(my_host->next != my_host)
+      replicate_job(ajob);
   } else {
     transfer_job(dest->host, ajob);
     free(ajob);
@@ -234,14 +222,14 @@ host_list_node *determine_ownership(job *ajob) {
   int job_hash;
   host_list_node *runner;
   job_hash = hash(ajob->name, ajob->id);
-#ifdef VERBOSE
+#ifdef VERBOSE2
   printf("%s, %d hashes to %d\n", ajob->name, ajob->id, job_hash);
 #endif
   runner = server_list->head;
   do {
     runner = runner->next;
   } while(runner->host->location <= job_hash && runner->host->location != 0);
-#ifdef VERBOSE
+#ifdef VERBOSE2
   printf("So it belongs to %s\n", runner->host->ip);
 #endif
   return runner;
@@ -254,7 +242,7 @@ int write_files(job *ajob, int num_files, data_size *files) {
   sprintf(buffer,"./jobs/%d/", ajob->id); 
   if(mkdir(buffer, S_IRWXU)) {
     if(errno == EEXIST) {
-#ifdef VERBOSE
+#ifdef VERBOSE2
       problem("directory already exists...\n");
 #endif
     } else {
@@ -360,7 +348,7 @@ host_port *find_job_server() { //Finds the host who we believe to have the most 
 void update_job_count(queue *Q, int update) {
   pthread_mutex_lock(&(Q->active_jobs_lock));
   Q->active_jobs = Q->active_jobs + update;
-#ifdef VERBOSE
+#ifdef VERBOSE2
   printfl("I have %d jobs", Q->active_jobs);
 #endif
   pthread_mutex_unlock(&(Q->active_jobs_lock));
@@ -390,9 +378,9 @@ void add_to_queue(job *addJob, queue *Q) {
   update_job_count(Q, 1);
 }
 
-int contains(unsigned int id, queue *Q) {
-  //thread_safe contains... but the result might be meaningless
-  //although given design principles, probably not
+job_list_node *contains(unsigned int id, queue *Q) { //returns the node with its lock acquired
+  //threadsafe
+  //may not need to be threadsafe
   job_list_node *runner;
   pthread_mutex_t *last_lock;
   last_lock = (&(Q->head_lock));
@@ -401,16 +389,15 @@ int contains(unsigned int id, queue *Q) {
   while(runner) {
     pthread_mutex_lock(&(runner->lock));
     if(runner->entry->id == id) {
-      pthread_mutex_unlock(&(runner->lock));
       pthread_mutex_unlock(last_lock);
-      return 1;
-    } 
-    runner = runner->next;
+      return runner;
+    }
     pthread_mutex_unlock(last_lock);
     last_lock = &(runner->lock);
+    runner = runner->next;
   }
   pthread_mutex_unlock(last_lock);
-  return 0;
+  return NULL;
 }
 
 
@@ -425,8 +412,4 @@ int contains(unsigned int id, queue *Q) {
 
 int inform_of_completion(job *completed) {
   return OKAY;
-}
-
-void print_my_job_queue() {
-  print_job_queue(my_queue);
 }

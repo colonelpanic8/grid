@@ -4,14 +4,12 @@ void handle_rpc(int connection) {
   get_ip(connection, host);
   safe_recv(connection, &rpc, sizeof(rpc));
 #ifdef SHOW_HEARTBEAT
-  printf(BAR);
-  printf("RPC %s from %s\n", which_rpc(rpc), host);
-  printf(BAR);
+  printf(RPC_STR);
+  printf("%s from %s\n", which_rpc(rpc), host);
 #else
   if(rpc != HEARTBEAT) {
-    printf(BAR);
-    printf("RPC %s from %s\n", which_rpc(rpc), host);
-    printf(BAR);
+    printf(RPC_STR);
+    printf("%-16s from %s\n", which_rpc(rpc), host);
   }
 #endif
   switch(rpc) {
@@ -126,13 +124,21 @@ void rpc_transfer_job(int connection) {
 
 void rpc_receive_job_copy(int connection) {
   int err;
-  job *incoming;
+  job *incoming, *temp;
+  job_list_node *item;
   incoming = malloc(sizeof(job));
   err = safe_recv(connection, incoming, sizeof(job));
   if(err < 0) {
     problem("Job transfer failed.\n");
   } else {
-    add_to_queue(incoming, backup_queue);
+    if(item = contains(incoming->id, backup_queue)) {
+      temp = item->entry;
+      item->entry = incoming;
+      pthread_mutex_unlock(&(item->lock));
+      free(temp);
+    } else {
+      add_to_queue(incoming, backup_queue);
+    }
   }
 }
 
@@ -144,7 +150,7 @@ void rpc_receive_announce(int connection) {
   add_host_to_list_by_location(incoming, server_list);
   server_list->id = incoming->id + 1;
   if(my_host->prev->host == incoming) { //We only need to redistribute when the host added is our prev
-#ifdef VERBOSE
+#ifdef VERBOSE2
     printf("Redistributing some jobs to the new node\n");
 #endif
     redistribute_jobs(my_queue);
@@ -183,6 +189,7 @@ void rpc_send_servers(int connection) {
   send_host_list(connection, server_list);
 }
 
+//No Longer in use.  Might be useful later.
 void rpc_receive_update(int connection){
   host_list *old = server_list;
   int err;
@@ -230,7 +237,7 @@ void rpc_serve_job(int connection) {
   job *ajob = get_local_job();
   if(ajob) {
     msg = OKAY;
-#ifdef VERBOSE
+#ifdef VERBOSE2
     printf("Sending job %s, %d\n", ajob->name, ajob->id);
 #endif
     safe_send(connection, &msg, sizeof(int));
