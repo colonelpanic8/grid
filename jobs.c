@@ -29,10 +29,11 @@ job *get_local_job() { //dequeue local job
 void print_job_queue(queue *Q) {
   job_list_node *runner;
   runner = Q->head;
-  printf(BAR);
-  printf("Jobs (%d active):\n", Q->active_jobs);
+  printf("(%d active):\n", Q->active_jobs);
+    printf("%-10s   %-5s   %-5s\n",
+	   "name", "id", "hash");
   while(runner) {
-    printf("\tName: %s, ID: %d, Hash: %d", runner->entry->name, runner->entry->id,
+    printf("%-10s | %-5d | %-5d", runner->entry->name, runner->entry->id,
 	   hash(runner->entry->name, runner->entry->id));
     if(runner == Q->head) {
       printf(" (Head)");
@@ -43,7 +44,6 @@ void print_job_queue(queue *Q) {
     printf("\n");
     runner = runner->next;
   }
-  printf(BAR);
 }
 
 int redistribute_jobs(queue *Q) {
@@ -75,18 +75,20 @@ int redistribute_jobs(queue *Q) {
 }
 
 void update_q_host_failed () {
-  job_list_node *prev, *runner = backup_queue->head;
+  job_list_node *prev, *found, *runner = backup_queue->head;
   host_list_node *dest;
+  job *temp;
   while(runner != NULL) {
     prev = runner;
     runner = runner->next;
     dest = determine_ownership(prev->entry);
     if(dest == my_host) {
       remove_job(prev, backup_queue);
-      add_to_queue(prev->entry, my_queue);
-      if(prev->entry->status == READY) {
-	update_job_count(my_queue, 1);
-      } 
+      if(contains(prev->entry->id, my_queue)) {
+	free_job_node(prev);
+      } else {
+	add_node_to_queue(prev, my_queue);
+      }
     }
   }
 }
@@ -155,6 +157,7 @@ int remove_job(job_list_node *item, queue *list) {
   } else {
     pthread_mutex_unlock(&(list->tail_lock));
   }
+  update_job_count(list, -1);
 }
 
 int transfer_job(host_port *host, job *to_send) {
@@ -355,27 +358,11 @@ void update_job_count(queue *Q, int update) {
 }
 
 void add_to_queue(job *addJob, queue *Q) {
-  job_list_node *n, *prev;
-
-  n = (job_list_node *)malloc(sizeof(job_list_node));
-  pthread_mutex_init(&(n->lock), NULL);
-  
-  pthread_mutex_lock(&(n->lock));
-  pthread_mutex_lock(&(Q->tail_lock));
-  n->next = NULL;
-  n->entry = addJob;
-  if(Q->tail) {
-    n->prev = Q->tail;
-    Q->tail->next = n;
-    Q->tail = n;
-  } else {
-    n->prev = NULL;
-    Q->tail = n;
-    Q->head = n;
-  }
-  pthread_mutex_unlock(&(Q->tail_lock));
-  pthread_mutex_unlock(&(n->lock));
-  update_job_count(Q, 1);
+  job_list_node *item = (job_list_node *)malloc(sizeof(job_list_node));
+  pthread_mutex_init(&(item->lock), NULL);
+  item->next = NULL;
+  item->entry = addJob;
+  add_node_to_queue(item, Q);
 }
 
 job_list_node *contains(unsigned int id, queue *Q) { //returns the node with its lock acquired
@@ -398,6 +385,26 @@ job_list_node *contains(unsigned int id, queue *Q) { //returns the node with its
   }
   pthread_mutex_unlock(last_lock);
   return NULL;
+}
+
+void add_node_to_queue(job_list_node *item, queue *Q) {
+  pthread_mutex_lock(&(item->lock));
+  pthread_mutex_lock(&(Q->tail_lock)); //We only need to acquire this lock because we only want to prevent other
+  //additions and removals, i.e. we need the tail to remain who it is until we are done.
+  if(Q->tail) {
+    item->prev = Q->tail;
+    Q->tail->next = item;
+    Q->tail = item;
+  } else {
+    item->prev = NULL;
+    Q->tail = item;
+    //Again, it may seem that we want to acquire the head_lock, but we don't need to since the only place the
+    //head will be changed when the list is empty is with an addition
+    Q->head = item;
+  }
+  pthread_mutex_unlock(&(Q->tail_lock));
+  pthread_mutex_unlock(&(item->lock));
+  update_job_count(Q, 1);
 }
 
 

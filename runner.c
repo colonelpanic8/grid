@@ -15,9 +15,7 @@ int runner() {
   int status, i;
   struct timespec req;
 #ifdef VERBOSE
-  printf(BAR);
   printf("Runner intialized\n");
-  printf(BAR);
 #endif
   req.tv_sec = RUNNER_REST;
   while(1) {

@@ -64,6 +64,7 @@ void copy_job(host_port *hip, job *cop_job);
 void add_replica(host_port *host, job *rep_job);
 host_list_node *determine_ownership(job *ajob);
 void add_to_queue(job *addJob, queue *Q);
+void add_node_to_queue(job_list_node *item, queue *Q);
 void free_job_node(job_list_node *item);
 void free_queue(queue *Q);
 void update_job_count(queue *Q, int update);

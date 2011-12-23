@@ -17,11 +17,15 @@
 #include "hash.h"
 #include "runner.h"
 
+//For add_lock
 #define LOCKED 1
 #define UNLOCKED 0
 
+//////////GLOBALS//////////
+
+//counter for Job IDs
 pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
-int counter = 0;
+unsigned int counter = 0;
 
 pthread_mutex_t server_list_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *server_list = NULL;
@@ -29,7 +33,7 @@ host_list *server_list = NULL;
 pthread_mutex_t failure_mutex = PTHREAD_MUTEX_INITIALIZER;
 host_list *failed_hosts = NULL;
 
-int num_servers, *listener;
+int *listener;
 pthread_t listener_thread;
 pthread_t user_thread;
 
@@ -91,7 +95,6 @@ int main(int argc, char **argv) {
   if(argc < 4) {
     server_list = new_host_list(my_hostport);
     my_host = server_list->head;
-    print_server_list();
   } else {
     if(get_servers(argv[2], atoi(argv[3]), 1, &server_list) < 0) {
       problem("Get servers failed!\n");
@@ -106,7 +109,6 @@ int main(int argc, char **argv) {
     my_hostport->id = server_list->id;
     server_list->id++;
     my_host = integrate_host(my_hostport);
-    print_server_list();
     distribute_update();
     relinquish_add_lock(server_list);
   }
@@ -120,8 +122,8 @@ int main(int argc, char **argv) {
   pthread_join(runner_thread, NULL);
 }
 
+
 int connect_to(host_list_node *server, int *connection) {
-  pthread_mutex_lock(&(server->lock));
   make_connection_with(server->host->ip, server->host->port, connection);
 }
 
@@ -135,9 +137,15 @@ int print_method() {
     fgets(buffer, BUFFER_SIZE-1, stdin);
     if(!strcmp(buffer, EXIT))
       finish(0);
+    printf(BAR);
     print_server_list();
+    printf(BAR);
+    printf("My Queue ");
     print_job_queue(my_queue);
+    printf(BAR);
+    printf("Backup Queue ");
     print_job_queue(backup_queue);
+    printf(BAR);
   }
 }
 
@@ -433,11 +441,9 @@ host_list_node *add_to_host_list(host_port *added_host_port, host_list_node *whe
   return new_node;
 }
 
-#ifdef TESTING
 void print_server_list() {
   host_list_node *current_node, *last = NULL;
   int count = 0;
-  printf(BAR);
   printf("Server List:\n");
   current_node = server_list->head;
   printf("%-5s   %-15s   %-5s   %-5s   %-5s   %-5s\n",
@@ -451,36 +457,16 @@ void print_server_list() {
     printf("%-5u | %-15s | %-5u | %-5u | %-5u | %-5u", 
 	   current_node->host->id, current_node->host->ip, current_node->host->port,
 	   current_node->host->location, current_node->host->jobs, current_node->host->time_stamp);
-    printf("prev: %u, self: %u, next: %u", 
+#ifdef VERBOSE
+    printf(" prev: %u, self: %u, next: %u", 
 	   current_node->prev->host->id, current_node->host->id, current_node->next->host->id);
+#endif
     if(current_node == my_host)
       printf(" (Me)");
     printf("\n");
     current_node = current_node->next;
   } while(current_node != server_list->head);
-  printf(BAR);
 }
-#else
-void print_server_list() {
-  host_list_node* current_node;
-  printf(BAR);
-  printf("Server List:\n");
-  current_node = server_list->head;
-  printf("%-5s   %-15s   %-5s   %-5s   %-5s   %-5s\n", 
-	 "id", "ip", "port", "hash", "#jobs", "stamp");
-  do {
-    printf("%-5u | %-15s | %-5u | %-5u | %-5u | %-5u", 
-	   current_node->host->id, current_node->host->ip, current_node->host->port,
-	   current_node->host->location, current_node->host->jobs, current_node->host->time_stamp);
-    if(current_node == my_host) {
-      printf(" (Me)");
-    }
-    printf("\n");
-    current_node = current_node->next;
-  } while(current_node != server_list->head);
-  printf(BAR);
-}
-#endif
 
 int get_servers(char *hostname, int port, int add_slots, host_list **list) {
   int connection = 0;
