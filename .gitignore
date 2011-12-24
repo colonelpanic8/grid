@@ -1,8 +1,9 @@
 server
-*.o
+hash_test
 client
+conflicting_writes
+*.o
 .#*
 #*
 *.plist
-hash_test
 output.txt

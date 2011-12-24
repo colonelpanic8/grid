@@ -34,7 +34,7 @@
 #undef  DEPENDENCIES
 
 #define NO_DEQUEUE              //This prevents the runner from ever dequeing jobs, so that we can see what happens when nodes maintain large queues
-//#undef  NO_DEQUEUE
+#undef  NO_DEQUEUE
 
 #else
 

@@ -28,9 +28,6 @@ hash_test.o: hash_test.c hash.h
 
 conflicting_writes.o: conflicting_writes.c network.c constants.h network.h
 
-setup:
-	mkdir jobs
-
 clean:
 	rm *.o
 	rm server
