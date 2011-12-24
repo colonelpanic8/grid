@@ -10,6 +10,7 @@ int tell_to_unlock(int connection);
 //General
 int connect_to(host_list_node *server, int *connection);
 void finish(int sig);
+void pipe_error(int sig);
 int print_method();
 int heartbeat();
 

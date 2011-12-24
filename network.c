@@ -48,12 +48,11 @@ int set_up_listener(int port, int *listener) {
   return OK;
 }
 
-
 int wait_for_connection(int listen_socket, int *connection) {
   int bulletin_socket;
 
   // listen for a client's "connect" request
-  if (listen(listen_socket, 1) < 0) return CONNECT_ERROR;
+  if (listen(listen_socket, 5) < 0) return CONNECT_ERROR;
 
   // accept it, get a dedicated socket for connection with this client
   bulletin_socket = accept(listen_socket,NULL,NULL);
@@ -82,6 +81,9 @@ int make_connection_with(char *hostname, int port, int *connection) {
 
   // return the connection's socket descriptor
   *connection = bulletin_socket;
+#ifdef VERBOSE2
+  printf("Connected with %s, got file descriptor, %d\n", hostname, *connection);
+#endif
   return OK;
 }
 

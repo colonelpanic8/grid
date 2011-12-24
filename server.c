@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
   
   //Set our termination method
   signal(SIGINT, finish);
+  signal(SIGPIPE, pipe_error);
   
   //Setup Jobs Folder
   if(mkdir("./jobs", S_IRWXU)) {
@@ -122,11 +123,12 @@ int main(int argc, char **argv) {
   pthread_join(runner_thread, NULL);
 }
 
-
+//In Progress
 int connect_to(host_list_node *server, int *connection) {
   make_connection_with(server->host->ip, server->host->port, connection);
 }
 
+//In Progress
 int _do_rpc(int connection, char rpc) {
   return safe_send(connection, &rpc, sizeof(char));
 }
@@ -167,6 +169,9 @@ host_list_node *integrate_host(host_port *host) {
   return add_to_host_list(host, max);
 }
 
+void pipe_error(int sig) {
+  problem("Pipe error\n");
+}
 
 void finish(int sig) {
   printf(BAR);
@@ -226,6 +231,7 @@ int heartbeat() {
     safe_send(connection, my_host->host, sizeof(host_port));
     update_job_counts(incoming);
     free_host_list(incoming, 1);
+    close(connection);
   }
   heartbeat_dest = heartbeat_dest->next;
 }

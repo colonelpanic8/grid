@@ -38,6 +38,7 @@ int submit_job_to_server(char *host, int port, job *to_send, data_size *files, i
     if(err < 0) problem("Send failed name\n");
   }
   safe_recv(connection, &i, sizeof(int));
+  close(connection);
   return i;
 }
 

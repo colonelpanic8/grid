@@ -10,6 +10,9 @@ void handle_rpc(int connection) {
   if(rpc != HEARTBEAT) {
     printf(RPC_STR);
     printf("%-16s from %s\n", which_rpc(rpc), host);
+#ifdef VERBOSE2
+    printf("...with file descriptor %d\n", connection);
+#endif
   }
 #endif
   switch(rpc) {
@@ -52,10 +55,6 @@ void handle_rpc(int connection) {
     break;
   }
   close(connection);
-#ifdef SHOW_HEARTBEAT
-  print_server_list();
-  print_job_queue(my_queue);
-#endif
 }
 
 char *which_rpc(int rpc) {
