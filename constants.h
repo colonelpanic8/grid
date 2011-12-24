@@ -60,6 +60,7 @@
 #define BUFFER_SIZE 256
 #define MAX_ARGUMENTS 10
 #define MAX_ARGUMENT_LEN 40
+#define JOB_ID_SPACER 16384
 
 #define EXIT "exit\n"
 

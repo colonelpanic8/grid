@@ -1,9 +1,9 @@
 CC = gcc
 CFLAGS = -g
 
-.PHONY: clean
+.PHONY: clean setup
 
-all: server client hash_test conflicting_writes
+all: server client hash_test conflicting_writes setup
 
 server: network.o server.o runner.o hash.o
 	gcc -g -lpthread -o server network.o server.o runner.o hash.o
@@ -27,6 +27,9 @@ hash.o: hash.h hash.c
 hash_test.o: hash_test.c hash.h
 
 conflicting_writes.o: conflicting_writes.c network.c constants.h network.h
+
+setup:
+	mkdir jobs
 
 clean:
 	rm *.o

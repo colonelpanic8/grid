@@ -518,7 +518,7 @@ void add_host_to_list_by_location(host_port *host, host_list *list) {
 
 int get_job_id(job *ajob) {
   pthread_mutex_lock(&count_mutex);
-  ajob->id = my_host->host->location + counter;
+  ajob->id = my_host->host->id*JOB_ID_SPACER + counter;
   counter++;
   pthread_mutex_unlock(&count_mutex);
   return ajob->id;
