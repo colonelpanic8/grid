@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <time.h>
 #include "constants.h"
+#include <sys/wait.h>
 #include "server.h"
 #include "runner.h"
 
