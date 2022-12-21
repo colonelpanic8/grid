@@ -8,6 +8,8 @@
 #include <errno.h>
 #include "constants.h"
 #include "network.h"
+#include <arpa/inet.h>
+
 
 int build_address(char *hostname, int port, struct sockaddr_in *inet_address) {
   struct hostent *host_entries;
