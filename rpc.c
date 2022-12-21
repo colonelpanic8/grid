@@ -1,3 +1,5 @@
+#include <pthread.h>
+
 void handle_rpc(int connection) {
   int rpc;
   char host[INET_ADDRSTRLEN];
