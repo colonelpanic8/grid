@@ -83,3 +83,9 @@ host_list *new_host_list_by_node(host_list_node *node);
 void notify_others_of_failure(host_port *failed_host);
 void inform_of_failure(int connection, host_port *failed_host);
 void update_q_host_failed ();
+
+
+int replicate_job(job *to_send);
+int send_meta_data(job *ajob);
+int remove_job(job_list_node *item, queue *list);
+int request_add_lock(int connection);
