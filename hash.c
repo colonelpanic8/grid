@@ -1,5 +1,7 @@
 #include "hash.h"
 #include <stdio.h>
+#include <stdlib.h>
+
 #define SIZE 256
 
 unsigned long _hash(unsigned char *str)
