@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <time.h>
 #include "constants.h"
+#include <sys/wait.h>
 #include "server.h"
 #include "runner.h"
 
@@ -81,6 +82,25 @@ int run_a_job(job *to_run) {
       problem("dup2 failed, this is very bad (output)\n");
     }
     sprintf(inpath, "input.txt", to_run->id);
+
+/*
+
+Error:
+runner.c: In function ‘run_a_job’:
+runner.c:84:21: warning: too many arguments for format [-Wformat-extra-args]
+   84 |     sprintf(inpath, "input.txt", to_run->id);
+      |              
+
+Not altered but, Possible Fixes:
+
+     sprintf(inpath, "input%d.txt", to_run->id);
+
+or 
+
+    sprintf(inpath, "%d.txt", to_run->id);
+
+*/
+
     in = fopen(inpath, "r");
     if(!in) {
 #ifdef VERBOSE
